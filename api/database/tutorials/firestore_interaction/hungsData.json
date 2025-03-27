@@ -1,0 +1,47 @@
+{
+  "__collections__": {
+    "User": {
+      "Z7NSsXKdvhSakS9c1sDc": {
+        "name_middle": "smith",
+        "name_first": "Jane",
+        "name_last": "Doe",
+        "email": "jds@something.com",
+        "preferences": [
+          "shopping",
+          "movies",
+          "friends",
+          "fun",
+          "beach"
+        ],
+        "__collections__": {}
+      },
+      "zcQOg8HrGSHPIAfPe8FE": {
+        "name_middle": "Bob",
+        "name_first": "John",
+        "name_last": "Doe",
+        "email": "jd@something.com",
+        "preferences": [
+          "movies",
+          "walk about",
+          "sleeping",
+          "travel"
+        ],
+        "__collections__": {}
+      },
+      "zcQOg8HrgshPIAfPe8FE": {
+        "name_middle": "Jive",
+        "name_first": "Alex",
+        "name_last": "Down",
+        "email": "ad@something.com",
+        "preferences": [
+          "mountain climbing",
+          "rock climbing",
+          "travel",
+          "music",
+          "fishing"
+        ],
+        "__collections__": {}
+      }
+    }
+  }
+}

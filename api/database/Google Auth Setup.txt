@@ -1,0 +1,91 @@
+Setup wiht nrizvi account 
+Created new Cloud 
+GopherIndustries-TTFX
+API&Services 
+OAuth Consent 
+
+https://docs.expo.dev/guides/authentication/
+
+WebClientID is needed for expo login to work on emulator,
+Android and iOs client id work properly(Need double test)
+For webclient id we need expo login info 
+currently setup for nrizvi@deakin.edu.au
+
+
+App Name: NurtiHelp 
+
+contact/support email: nrizvi@deakin.edu.au
+
+JavaScript Orgins: 
+https:auth.expo.io
+
+expoUsername: nrizvi
+
+
+expo prebuild - this builds the app.json file and android development 
+Did this to get user details after google auth
+
+Build name: com.gopher.nutrihelp
+
+---------------------------------------------------------------------
+
+
+Build commands for login authentication:
+npx expo install expo-auth-session expo-crypto expo-web-browser expo-random
+
+npx expo install expo-updates
+
+npx expo install expo-application
+
+
+
+Current Issue: Expo setup with android google login doesn't seem to work 
+will need to research this first to get user details from google login. 
+
+---------------------------------------------------------------------
+05-04-23
+
+eas build:configure
+
+this will configure build profile 
+makes the eas.json file 
+has the build profile for dev and
+
+
+eas credentials 
+
+this will give sha1 fingerprint for android client ID 
+
+basic setups for all of them 
+
+
+Current issue: cannot setup logout on the right page
+it logs out the same place it logs in from 
+need to setup logout in nutrition page, 
+Tried method is calling the logout function inside google auth 
+doesn't work
+
+-----------------------------------------------------------------------
+
+
+With google OAuth IDs 
+sometimes it will say error while loggin in "Error: deleted_client",
+this means that the Oauth tokens have exipred, Need to go to google
+developer cloud and create new tokens using steps above. 
+
+
+Logout Screen is setup, it will remove persistence on Emulator 
+and it will logout completely on standalone. 
+
+
+
+WebCLient id details:
+
+Auth Javascript origin: 
+https://auth.expo.io
+
+Auth Redirect:
+http://auth.expo.io/@yourExpoUsername/ttfxrebuildattempt
+
+Android client id:
+

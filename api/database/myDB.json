@@ -1,0 +1,435 @@
+{
+  "__collections__": {
+    "grocery list": {
+      "Q5Ca9iyZzVlNtbNSjomj": {
+        "date": {
+          "date": {
+            "__datatype__": "timestamp",
+            "value": {
+              "_seconds": 1701550800,
+              "_nanoseconds": 61000000
+            }
+          }
+        },
+        "__collections__": {
+          "list": {
+            "nGk1cjH62nDDTYhiK2Gd": {
+              "apple": [
+                "fuji"
+              ],
+              "orange": [
+                "navel"
+              ],
+              "steak": [
+                "sirloin"
+              ],
+              "cabbage": [
+                "savoy"
+              ],
+              "__collections__": {}
+            }
+          }
+        }
+      }
+    },
+    "ingrediant": {
+      "Fruits": {
+        "__collections__": {
+          "Apple": {
+            "Fuji": {
+              "image": "",
+              "glucose": 3.3,
+              "calcium": 6,
+              "potassium": 91,
+              "vit b3": 0.1,
+              "fructose": 7.7,
+              "magnesium": 4,
+              "moisture": 84.1,
+              "sucrose": 1.1,
+              "carbohydrate": 12.1,
+              "total sugar": 12.1,
+              "sodium": 2,
+              "vit a": 1,
+              "vit c": 5,
+              "vit b1": 0.02,
+              "vit e": 0.36,
+              "protein": 0.3,
+              "vit b2": 0.01,
+              "citric acid": 0,
+              "fat": 0.3,
+              "chloride": 0,
+              "fibre": 2.4,
+              "energy": 245,
+              "phosphorus": 8,
+              "iron": 0,
+              "__collections__": {}
+            }
+          },
+          "Orange": {
+            "Navel": {
+              "image": "",
+              "glucose": 1.9,
+              "potassium": 190,
+              "calcium": 23,
+              "vit b3": 0,
+              "fructose": 2.1,
+              "magnesium": 12,
+              "moisture": 86.4,
+              "sucrose": 4.2,
+              "carbohydrate": 8.2,
+              "sodium": 0,
+              "vit a": 6,
+              "vit c": 52,
+              "vit e": 0.1,
+              "vit b1": 0.07,
+              "protein": 1,
+              "vit b2": 0.02,
+              "fat": 0,
+              "citric acid": 0.6,
+              "chloride": 0,
+              "iron": 0,
+              "fibre": 2.4,
+              "sugar": 8.2,
+              "energy": 174,
+              "phosphorus": 24,
+              "__collections__": {}
+            }
+          }
+        }
+      },
+      "Meat": {
+        "__collections__": {
+          "Beef": {
+            "Sirloin Steak": {
+              "potassium": 330,
+              "mono fat": 6.88,
+              "trans fatty acid": 725.78,
+              "carbohydrate": 0,
+              "vit a": 11,
+              "selenium": 8.9,
+              "vit c": 1,
+              "vit e": 0.86,
+              "protein": 21.4,
+              "fat": 15.3,
+              "chloride": 0,
+              "cholesterol": 58,
+              "zinc": 3.16,
+              "poly fat": 0.49,
+              "tryptophan": 173,
+              "energy": 930,
+              "phosphorus": 198,
+              "image": "",
+              "calcium": 6,
+              "vit b3": 5.88,
+              "magnesium": 23,
+              "moisture": 62.1,
+              "sodium": 50,
+              "vit b1": 0.039,
+              "vit b2": 0.182,
+              "iron": 2,
+              "fibre": 0,
+              "__collections__": {}
+            }
+          },
+          "Chicken": {
+            "Egg": {
+              "potassium": 140,
+              "mono fat": 3.55,
+              "trans fatty acid": 9.88,
+              "carbohydrate": 8.2,
+              "vit a": 130,
+              "selenium": 25.7,
+              "vit c": 0,
+              "vit e": 1.71,
+              "protein": 12.6,
+              "fat": 0.78,
+              "chloride": 0,
+              "cholesterol": 488,
+              "poly fat": 1.19,
+              "tryptophan": 160,
+              "energy": 533,
+              "phosphorus": 180,
+              "image": "",
+              "glucose": 1.9,
+              "calcium": 47,
+              "vit b3": 0,
+              "magnesium": 12,
+              "moisture": 76.1,
+              "sodium": 150,
+              "vit b1": 0.07,
+              "vit b2": 0.43,
+              "iron": 1.9,
+              "fibre": 0,
+              "__collections__": {}
+            },
+            "Whole Raw": {
+              "potassium": 290,
+              "mono fat": 1.16,
+              "trans fatty acid": 12.42,
+              "carbohydrate": 8.2,
+              "vit a": 12,
+              "vit c": 0,
+              "vit e": 1.68,
+              "protein": 21.1,
+              "fat": 0.78,
+              "chloride": 0,
+              "cholesterol": 66,
+              "poly fat": 0.45,
+              "tryptophan": 287,
+              "energy": 454,
+              "phosphorus": 238,
+              "image": "",
+              "glucose": 1.9,
+              "calcium": 23,
+              "vit b3": 9.46,
+              "fructose": 2.1,
+              "magnesium": 26,
+              "moisture": 75,
+              "sucrose": 4.2,
+              "sodium": 49,
+              "vit b1": 0.112,
+              "vit b2": 0.191,
+              "citric acid": 0.6,
+              "iron": 0.47,
+              "fibre": 0,
+              "sugar": 0,
+              "__collections__": {}
+            }
+          }
+        }
+      },
+      "Misc": {
+        "__collections__": {
+          "Sugar": {
+            "Raw": {
+              "potassium": 21,
+              "carbohydrate": 99.8,
+              "vit a": 0,
+              "iorn": 0.3,
+              "vit c": 0,
+              "vit e": 0,
+              "protein": 0,
+              "fat": 0,
+              "chloride": 0,
+              "energy": 1597,
+              "phosphorus": 0,
+              "image": "",
+              "glucose": 0,
+              "calcium": 7,
+              "vit b3": 0,
+              "fructose": 0,
+              "magnesium": 3,
+              "moisture": 0,
+              "sucrose": 99.8,
+              "sodium": 1,
+              "vit b1": 0,
+              "vit b2": 0,
+              "citric acid": 0,
+              "fibre": 0,
+              "sugar": 99.8,
+              "__collections__": {}
+            }
+          }
+        }
+      },
+      "Vegetables": {
+        "__collections__": {
+          "Cabbage": {
+            "Chinese": {
+              "image": "",
+              "energy": 44,
+              "glucose": 1.9,
+              "potassium": 190,
+              "calcium": 23,
+              "vit b3": 0,
+              "fructose": 2.1,
+              "magnesium": 12,
+              "moisture": 86.4,
+              "sucrose": 4.2,
+              "carbohydrate": 8.2,
+              "sodium": 0,
+              "vit a": 6,
+              "vit c": 52,
+              "vit e": 0.1,
+              "vit b1": 0.07,
+              "protein": 1,
+              "vit b2": 0.02,
+              "fat": 0,
+              "citric acid": 0.6,
+              "chloride": 0,
+              "iron": 0,
+              "fibre": 2.4,
+              "sugar": 8.2,
+              "phosphorus": 24,
+              "__collections__": {}
+            },
+            "Savoy": {
+              "image": "",
+              "glucose": 0,
+              "calcium": 39,
+              "potassium": 340,
+              "vit b3": 0.4,
+              "magnesium": 14,
+              "moisture": 92.2,
+              "carbohydrate": 2.3,
+              "sodium": 23,
+              "vit a": 13,
+              "selenium": 0.5,
+              "vit c": 46,
+              "vit b1": 0.05,
+              "vit e": 0,
+              "protein": 1.7,
+              "vit b2": 0.05,
+              "fat": 0.1,
+              "cholesterol": 0,
+              "iron": 0.6,
+              "fibre": 2.3,
+              "sugar": 2.3,
+              "zinc": 0.3,
+              "energy": 90,
+              "phosphorus": 24,
+              "__collections__": {}
+            }
+          }
+        }
+      }
+    },
+    "recipe": {
+      "Orange Juice": {
+        "image": "",
+        "ingredients": {
+          "amount": 250,
+          "unit": "grams",
+          "material": [
+            "sirloin steak"
+          ]
+        },
+        "steps": [
+          "Remove the steaks from the fridge about 30 mins before you plan to cook, so they’re closer to room temperature. Pat the steaks dry with kitchen paper, and season with salt and pepper. Take a heavy-based frying pan that will comfortably fit both steaks, add the oil and heat over a high flame.",
+          "When the oil is shimmering, turn the heat down to medium-high and add the butter. Once it’s sizzling, carefully lay the steaks in the pan, tucking the garlic and herbs in at the sides.",
+          "With a pair of tongs, sear and turn the steaks every 30 secs to 1 min so they get a nice brown crust. As a rough guide, each steak will take 3 mins in total for rare, 4-5 mins in total for medium and 7-8 mins for well done. If you have a digital cooking thermometer, the middle of the steak should be 50C for rare, 60C for medium and 70C for well done."
+        ],
+        "__collections__": {}
+      },
+      "sirloin steak": {
+        "image": "",
+        "steps": "",
+        "__collections__": {
+          "ingredient": {
+            "beef": {
+              "part": "Any beef part",
+              "amount": 250,
+              "unit": "gram",
+              "__collections__": {}
+            }
+          }
+        }
+      }
+    },
+    "user": {
+      "test": {
+        "firstname": "test",
+        "dob": {
+          "__datatype__": "timestamp",
+          "value": {
+            "_seconds": 347115600,
+            "_nanoseconds": 28000000
+          }
+        },
+        "lastname": "test",
+        "gender": "male",
+        "weight": 70,
+        "height": 170,
+        "access": {
+          "colour blind": false,
+          "voiceover": false,
+          "text size": "normal"
+        },
+        "comorbids": {
+          "dm": false,
+          "cholesterol": false,
+          "hpt": false
+        },
+        "allergies": {
+          "lactose ": false,
+          "pollen": false,
+          "nuts": false
+        },
+        "permission": {
+          "bluetooth": true,
+          "health": true,
+          "location": true,
+          "camera": true,
+          "contacts": true,
+          "notifications": true
+        },
+        "__collections__": {
+          "meals": {
+            "8NEhc4nqj4riz8Jbtsch": {
+              "date": {
+                "__datatype__": "timestamp",
+                "value": {
+                  "_seconds": 1701522000,
+                  "_nanoseconds": 278000000
+                }
+              },
+              "__collections__": {
+                "breakfast": {
+                  "DmPHunEovGf1vWM92zTU": {
+                    "apple": {
+                      "image": "",
+                      "calories": "245",
+                      "class": "fuji"
+                    },
+                    "time": {
+                      "__datatype__": "timestamp",
+                      "value": {
+                        "_seconds": 1701548100,
+                        "_nanoseconds": 588000000
+                      }
+                    },
+                    "__collections__": {}
+                  }
+                },
+                "dinner": {
+                  "cVzX7WFHb4JJG7lW7R0E": {
+                    "time": {
+                      "__datatype__": "timestamp",
+                      "value": {
+                        "_seconds": 1701522000,
+                        "_nanoseconds": 147000000
+                      }
+                    },
+                    "__collections__": {}
+                  }
+                },
+                "lunch": {
+                  "9JQrPJjIPGABK2x2lvTG": {
+                    "orange": {
+                      "image": "",
+                      "calories": "174",
+                      "class": "fuji"
+                    },
+                    "time": {
+                      "__datatype__": "timestamp",
+                      "value": {
+                        "_seconds": 1701569760,
+                        "_nanoseconds": 802000000
+                      }
+                    },
+                    "__collections__": {}
+                  }
+                },
+                "snack": {
+                  "QhPB5WfGnbnkjG4J8g1I": {
+                    "__collections__": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

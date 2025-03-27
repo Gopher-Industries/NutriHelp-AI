@@ -1,0 +1,24 @@
+
+Firebase Firestore Import Export JSON Data - Node Firestore Import Export
+https://www.youtube.com/watch?v=gPzs6t3tQak&t=489s&ab_channel=OctAcademy
+
+1.	download key from firestore.
+	- Generate new key from firestore > settings > service accounts:
+	- choose Node.js and generate key
+	- when downloaded you can change name of file and move it into 
+	  working directory
+
+2.	install node-firestore-import-export package globally
+	c:> npm install -g node-firestore-import-export
+
+3.	cd into directory where key is(command needs key to be current directory)
+	c:> firestore-export -a [key file name].json -b [data file name].json -p
+		example: 
+		c:> firestore-export -a fk.json -b data1.json -p
+
+	clear the database
+	c:> firestore-clear -a [key file name].json
+
+	upload data
+	c:> firestore-import -a [key file name].json -b [data file name].json
+	firestore-import -a fk.json -b data1.json
