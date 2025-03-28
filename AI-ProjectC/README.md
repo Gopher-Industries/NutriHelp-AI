@@ -1,9 +1,8 @@
-```markdown
+
 # AI Project Setup Guide
 
 This comprehensive README provides **all** instructions in **Markdown** format, covering **cloning** the repository, **setting up the environment**, **running the API**, **training the model**, and **troubleshooting issues**.
 
----
 
 ## 1. Obtain the Project Code
 
@@ -32,7 +31,6 @@ You have **two** primary ways to get the code: **cloning** the repository using 
 
 Either approach will give you the **same** files locally.
 
----
 
 ## 2. Create and Activate a Virtual Environment
 
