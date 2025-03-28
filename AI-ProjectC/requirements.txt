@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+torch
+torchvision
+pillow
+numpy
+tqdm
+matplotlib
+requests
+scikit-learn
+albumentations
+python-multipart
+# ... add any other dependencies
