@@ -15,7 +15,7 @@ def transform_image(image):
     return transform(image).unsqueeze(0)
 
 
-def predict_image(image):
+def predict_image_service(image):
     tensor = transform_image(image)
     # with torch.no_grad():
     #     outputs = model(tensor)

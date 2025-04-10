@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import pandas as pd
 import numpy as np
-from nutrihelp_ai.services.predict_obesity import predict_obesity_class
+from nutrihelp_ai.services.predict_obesity import predict_obesity_service
 
 router = APIRouter()
 
@@ -26,6 +26,6 @@ class ObesityInput(BaseModel):
 @router.post("/predict")
 def predict_obesity(input_data: ObesityInput):
     try:
-        return predict_obesity_class(input_data)
+        return predict_obesity_service(input_data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
