@@ -16,14 +16,8 @@ categorical_columns = ['Gender', 'family_history_with_overweight', 'FAVC', 'CAEC
                        'SMOKE', 'SCC', 'CALC', 'MTRANS']
 numerical_columns = ['Age', 'Height', 'Weight', 'NCP', 'CH2O', 'FAF', 'TUE']
 
-def predict_obesity_class(input_data):
-    # from nutrihelp_ai.routers.obesity_api import ObesityInput
-    # df = pd.DataFrame([input_data.dict()])
-    # X = preprocessor.transform(df)
-    # probs = model.predict(X)
-    # pred_class = np.argmax(probs, axis=1)[0]
-    # label = label_encoder.inverse_transform([pred_class])[0]
-    # return {"prediction": label}
+def predict_obesity_service(input_data):
+
     return {
-        "prediction": "Mock_Label"
+        "obesity_level": "Obese"
     }
