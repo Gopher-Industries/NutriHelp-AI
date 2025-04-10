@@ -67,6 +67,8 @@ You can access the Swagger UI documentation at:
 http://127.0.0.1:8000/docs
 ```
 
+If you want to run on different port, go to run.py file and change the port to different one.
+
 ---
 
 ## 📬 API Endpoint Example
@@ -81,19 +83,9 @@ Accepts JSON-formatted input and returns a prediction result.
 {
   "Gender": "Male",
   "family_history_with_overweight": "yes",
-  "FAVC": "yes",
-  "CAEC": "Sometimes",
-  "SMOKE": "no",
-  "SCC": "no",
-  "CALC": "Frequently",
-  "MTRANS": "Public_Transportation",
   "Age": 25,
   "Height": 1.75,
   "Weight": 85,
-  "NCP": 3,
-  "CH2O": 2,
-  "FAF": 0.5,
-  "TUE": 1
 }
 ```
 
