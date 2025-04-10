@@ -99,3 +99,74 @@ Accepts JSON-formatted input and returns a prediction result.
 
 ---
 
+# 📡 How the Backend Team Can Use the NutriHelp AI API
+
+Once the AI server is running (locally or on a deployed environment), the Backend team can send requests to it over HTTP.
+
+---
+
+## 🔗 Endpoint Information
+
+| Method | Endpoint                            | Description                  |
+|--------|-------------------------------------|------------------------------|
+| POST   | `/ai-model/obesity/predict`         | Get obesity prediction       |
+| POST   | `/ai-model/chatbot/query`           | Get response from AI         |
+---
+
+## 📤 Example Request
+
+### 🔧 URL (Local Testing)
+```
+http://localhost:8000/ai-model/obesity/predict
+```
+
+### 🧾 Headers
+```http
+Content-Type: application/json
+```
+
+### 📦 JSON Body
+```json
+{
+  "Gender": "Male",
+  "Age": 25,
+  "Height": 1.75,
+  "Weight": 85,
+}
+```
+
+### ✅ Example Successful Response
+```json
+{
+  "obesity_level": "Overweight"
+}
+```
+
+---
+
+## 🧪 How to Test 
+
+### ✅ Example: Send Obesity Prediction Request
+
+```js
+const data = {
+  Gender: "Male",
+  family_history_with_overweight: "yes",
+  Age: 25,
+  Height: 1.75,
+  Weight: 85,
+};
+
+fetch("http://localhost:8000/ai-model/obesity/predict", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(data)
+})
+  .then((res) => res.json())
+  .then((data) => console.log("Prediction:", data))
+  .catch((err) => console.error("Error:", err));
+```
+
+---
