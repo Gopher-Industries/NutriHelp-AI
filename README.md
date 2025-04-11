@@ -142,22 +142,22 @@ Content-Type: application/json
 
 ```js
 const data = {
-  gender: "Male",
-  age: 25,
-  height: 1.75,
-  weight: 85,
-  family_history_with_overweight: "yes",
-  frequent_consumption_of_high_caloric_food: "yes",
-  frequency_of_consumption_of_vegetables: 2,
-  number_of_main_meals: 3,
-  consumption_of_food_between_meals: "Sometimes",
-  smoker: "no",
-  consumption_of_water_daily: 2.5,
-  calories_consumption_monitoring: "no",
-  physical_activity_frequency: 1,
-  time_using_technology_devices: 1,
-  consumption_of_alcohol: "Sometimes",
-  transportation_used: "Public_Transportation"
+  "Gender": "Male",
+  "Age": 25,
+  "Height": 1.75,
+  "Weight": 65,
+  "family_history_with_overweight": "yes",
+  "FAVC": "yes",
+  "FCVC": 2.5,
+  "NCP": 3,
+  "CAEC": "Sometimes",
+  "SMOKE": "no",
+  "CH2O": 2.5,
+  "SCC": "no",
+  "FAF": 0.5,
+  "TUE": 1,
+  "CALC": "Sometimes",
+  "MTRANS": "Public_Transportation"
 };
 
 fetch("http://localhost:8000/predict", {
