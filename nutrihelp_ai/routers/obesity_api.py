@@ -4,27 +4,30 @@ from nutrihelp_ai.services.predict_obesity import predict_obesity_service
 
 router = APIRouter()
 
+from pydantic import BaseModel, Field
+
 class ObesityInput(BaseModel):
-    gender: str = Field(..., example="Male")
-    age: float = Field(..., example=24.443011)
-    height: float = Field(..., example=1.699998)
-    weight: float = Field(..., example=81.66995)
+    Gender: str = Field(..., example="Male")
+    Age: float = Field(..., example=25)
+    Height: float = Field(..., example=1.75)
+    Weight: float = Field(..., example=85)
     family_history_with_overweight: str = Field(..., example="yes")
-    frequent_consumption_of_high_caloric_food: str = Field(..., example="yes")
-    frequency_of_consumption_of_vegetables: float = Field(..., example=2)
-    number_of_main_meals: float = Field(..., example=2.983297)
-    consumption_of_food_between_meals: str = Field(..., example="Sometimes")
-    smoker: str = Field(..., example="no")
-    consumption_of_water_daily: float = Field(..., example=2.763573)
-    calories_consumption_monitoring: str = Field(..., example="no")
-    physical_activity_frequency: float = Field(..., example=0)
-    time_using_technology_devices: float = Field(..., example=0.976473)
-    consumption_of_alcohol: str = Field(..., example="Sometimes")
-    transportation_used: str = Field(..., example="Public_Transportation")
+    FAVC: str = Field(..., example="yes")
+    FCVC: float = Field(..., example=2.5)
+    NCP: float = Field(..., example=3)
+    CAEC: str = Field(..., example="Sometimes")
+    SMOKE: str = Field(..., example="no")
+    CH2O: float = Field(..., example=2.5)
+    SCC: str = Field(..., example="no")
+    FAF: float = Field(..., example=0.5)
+    TUE: float = Field(..., example=1)
+    CALC: str = Field(..., example="Sometimes")
+    MTRANS: str = Field(..., example="Public_Transportation")
+
 
 @router.post("/predict")
 def predict_obesity(input_data: ObesityInput):
     try:
         return predict_obesity_service(input_data)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
