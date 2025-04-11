@@ -6,7 +6,7 @@ To use the predict function, you’ll need to provide an input in the form of a 
 %python
 import obesity_prediction
 
-# Example input data
+\# Example input data
 input_data = {
     "Gender": "Male",
     "Age": 24.443011,
@@ -25,12 +25,12 @@ input_data = {
     "MTRANS": "Public_Transportation"
 }
 
-# Path to the model and encoder files
+\# Path to the model and encoder files
 model_path = 'models/obesity_model.keras'
 encoder_path = 'AI-ProjectD/Obesity-Prediction/obesity_preprocessor.pkl'
 label_encoder_path = 'AI-ProjectD/Obesity-Prediction/obesity_label_encoder.pkl'
 
-# Make a prediction
+\# Make a prediction
 result = obesity_prediction.predict(input_data, model_path, encoder_path, label_encoder_path)
 print("Prediction Result:", result)
 ```
