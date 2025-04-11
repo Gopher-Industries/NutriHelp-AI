@@ -44,3 +44,17 @@ import os
 print("Current working directory:", os.getcwd())
 print("Files in expected directory:", os.listdir('/models'))
 ```
+
+### ategorical Feature Encoding
+
+The model strictly expects categorical features to match the following categories:
+- **Gender**: ['Female', 'Male']
+- **family_history_with_overweight**: ['no', 'yes']
+- **FAVC**: ['no', 'yes']
+- **CAEC**: ['Always', 'Frequently', 'Sometimes', 'no']
+- **SMOKE**: ['no', 'yes']
+- **SCC**: ['no', 'yes']
+- **CALC**: ['Frequently', 'Sometimes', 'no']
+- **MTRANS**: ['Automobile', 'Bike', 'Motorbike', 'Public_Transportation', 'Walking']
+
+Ensure input data uses these exact string values (case-sensitive) for proper one-hot encoding. Any unknown categories will be ignored during inference.
