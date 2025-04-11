@@ -35,7 +35,7 @@ result = obesity_prediction.predict(input_data, model_path, encoder_path, label_
 print("Prediction Result:", result)
 ```
 
-### Important Note
+## Important Note ❗️
 
 Please adjust the file paths (model_path, encoder_path, label_encoder_path) according to your local environment where the files are stored. Incorrect paths will lead to errors in loading the model and the preprocessors.
 
@@ -45,7 +45,7 @@ print("Current working directory:", os.getcwd())
 print("Files in expected directory:", os.listdir('/models'))
 ```
 
-### ategorical Feature Encoding
+## Categorical Feature Encoding ❗️
 
 The model strictly expects categorical features to match the following categories:
 - **Gender**: ['Female', 'Male']
