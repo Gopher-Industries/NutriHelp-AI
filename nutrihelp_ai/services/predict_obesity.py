@@ -1,23 +1,31 @@
+import numpy as np
 import joblib
 import tensorflow as tf
 import pandas as pd
-import numpy as np
 
+# Load preprocessor, label encoder, and model
+preprocessor = joblib.load("nutrihelp_ai/model/obesity_preprocessor.pkl")
+label_encoder = joblib.load("nutrihelp_ai/model/obesity_label_encoder.pkl")
+model = tf.keras.models.load_model("nutrihelp_ai/model/obesity_model.keras")
 
-try:
-    model = tf.keras.models.load_model("nutrihelp_ai/models/obesity_model.keras")
-    preprocessor = joblib.load("nutrihelp_ai/models/preprocessor.joblib")
-    label_encoder = joblib.load("nutrihelp_ai/models/label_encoder.joblib")
-except Exception as e:
-    print("⚠️ Models not loaded yet. Using mock prediction.")
-    model = preprocessor = label_encoder = None
-
-categorical_columns = ['Gender', 'family_history_with_overweight', 'FAVC', 'CAEC',
-                       'SMOKE', 'SCC', 'CALC', 'MTRANS']
-numerical_columns = ['Age', 'Height', 'Weight', 'NCP', 'CH2O', 'FAF', 'TUE']
 
 def predict_obesity_service(input_data):
+    try:
+        # Convert input to dictionary and wrap in list (1 sample)
+        input_df = pd.DataFrame([input_data.dict()])  # ✅ DataFrame with named columns
 
-    return {
-        "obesity_level": "Obese"
-    }
+        # Transform with preprocessor (expects DataFrame with column names)
+        processed_input = preprocessor.transform(input_df)
+
+        # Predict
+        prediction = model.predict(processed_input)
+        predicted_index = np.argmax(prediction)
+        predicted_label = label_encoder.inverse_transform([predicted_index])[0]
+
+        return {
+            "status": "success",
+            "prediction": predicted_label
+        }
+
+    except Exception as e:
+        raise RuntimeError(f"Prediction failed: {e}")
