@@ -142,23 +142,35 @@ Content-Type: application/json
 
 ```js
 const data = {
-  Gender: "Male",
-  family_history_with_overweight: "yes",
-  Age: 25,
-  Height: 1.75,
-  Weight: 85,
+  "Gender": "Male",
+  "Age": 25,
+  "Height": 1.75,
+  "Weight": 65,
+  "family_history_with_overweight": "yes",
+  "FAVC": "yes",
+  "FCVC": 2.5,
+  "NCP": 3,
+  "CAEC": "Sometimes",
+  "SMOKE": "no",
+  "CH2O": 2.5,
+  "SCC": "no",
+  "FAF": 0.5,
+  "TUE": 1,
+  "CALC": "Sometimes",
+  "MTRANS": "Public_Transportation"
 };
 
-fetch("http://localhost:8000/ai-model/obesity/predict", {
+fetch("http://localhost:8000/predict", {
   method: "POST",
   headers: {
     "Content-Type": "application/json"
   },
   body: JSON.stringify(data)
 })
-  .then((res) => res.json())
-  .then((data) => console.log("Prediction:", data))
-  .catch((err) => console.error("Error:", err));
+.then(response => response.json())
+.then(result => console.log("Prediction:", result))
+.catch(error => console.error("Error:", error));
+
 ```
 
 ---

@@ -6,4 +6,6 @@ pandas
 numpy
 scikit-learn
 Pillow
+torch
+torchvision
 python-multipart
