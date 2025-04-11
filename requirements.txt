@@ -6,4 +6,3 @@ pandas
 numpy
 scikit-learn
 Pillow
-python-multipart
