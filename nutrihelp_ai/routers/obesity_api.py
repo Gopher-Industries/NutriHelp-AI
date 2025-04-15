@@ -13,6 +13,7 @@ class ObesityInput(BaseModel):
     Weight: float = Field(..., example=85)
     family_history_with_overweight: str = Field(..., example="yes")
     FAVC: str = Field(..., example="yes")
+    FCVC: float = Field(..., example=2.7)
     NCP: float = Field(..., example=3)
     CAEC: str = Field(..., example="Sometimes")
     SMOKE: str = Field(..., example="no")
