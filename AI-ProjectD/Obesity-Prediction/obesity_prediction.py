@@ -32,7 +32,7 @@ import joblib
 #---------------------- Methods Start Here ----------------------#
 def preprocess_data(df, target_column='NObeyesdad', mode='train', encoder_path=None, label_encoder_path=None):
     categorical_columns = ['Gender', 'family_history_with_overweight', 'FAVC', 'CAEC', 'SMOKE', 'SCC', 'CALC', 'MTRANS']
-    numerical_columns = ['Age', 'Height', 'Weight', 'NCP', 'CH2O', 'FAF', 'TUE']
+    numerical_columns = ['Age', 'Height', 'Weight', 'FCVC', 'NCP', 'CH2O', 'FAF', 'TUE']
     
     numerical_pipeline = Pipeline([('scaler', StandardScaler())])
     categorical_pipeline = Pipeline([('onehot', OneHotEncoder(sparse_output=False, handle_unknown='ignore'))])
