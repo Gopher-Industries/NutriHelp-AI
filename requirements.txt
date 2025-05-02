@@ -9,3 +9,5 @@ Pillow
 torch
 torchvision
 python-multipart
+timm
+slowapi>=0.1.5
