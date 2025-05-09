@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NutriBot Interface</title>
+  <style>
+    body { font-family: Arial; margin: 40px; background: #f8f8f8; }
+    h2 { color: #2b6cb0; }
+    .container { max-width: 700px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input[type="text"], textarea {
+      width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px; background: #2b6cb0; color: white; border: none; border-radius: 5px;
+      cursor: pointer; margin-top: 10px;
+    }
+    button:hover { background: #2c5282; }
+    .response { background: #edf2f7; padding: 10px; margin-top: 10px; border-radius: 5px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>NutriBot Chat & Upload</h2>
+
+    <!-- Chat Box -->
+    <label>Ask NutriBot a question:</label>
+    <input type="text" id="queryInput" placeholder="e.g., What nutrients are in bananas?">
+    <button onclick="sendChat()">Send</button>
+    <div class="response" id="chatResponse"></div>
+
+    <hr>
+
+    <!-- PDF Upload -->
+    <h3>Upload PDF</h3>
+    <input type="file" id="pdfFile">
+    <button onclick="uploadPDF()">Upload PDF</button>
+    <div class="response" id="pdfResponse"></div>
+
+    <hr>
+
+    <!-- URL Upload -->
+    <h3>Add Web URL</h3>
+    <input type="text" id="urlInput" placeholder="e.g., https://www.healthline.com/nutrition/12-benefits-of-apple">
+    <button onclick="uploadURL()">Add URL</button>
+    <div class="response" id="urlResponse"></div>
+  </div>
+
+  <script>
+    async function sendChat() {
+      const query = document.getElementById("queryInput").value;
+      const resDiv = document.getElementById("chatResponse");
+      resDiv.innerText = "Thinking...";
+      try {
+        const response = await fetch("/chat?query=" + encodeURIComponent(query), {
+          method: "POST"
+        });
+        const data = await response.json();
+        resDiv.innerText = data.msg.output || JSON.stringify(data);
+      } catch (e) {
+        resDiv.innerText = "Error: " + e;
+      }
+    }
+
+    async function uploadPDF() {
+      const file = document.getElementById("pdfFile").files[0];
+      const resDiv = document.getElementById("pdfResponse");
+      if (!file) return alert("Please choose a PDF file.");
+      const formData = new FormData();
+      formData.append("file", file);
+      resDiv.innerText = "Uploading...";
+      try {
+        const response = await fetch("/add_pdfs", {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json();
+        resDiv.innerText = data.ok || JSON.stringify(data);
+      } catch (e) {
+        resDiv.innerText = "Error: " + e;
+      }
+    }
+
+    async function uploadURL() {
+      const url = document.getElementById("urlInput").value;
+      const resDiv = document.getElementById("urlResponse");
+      resDiv.innerText = "Processing...";
+      try {
+        const response = await fetch("/add_urls", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ urls: [url] })
+        });
+        const data = await response.json();
+        resDiv.innerText = data.ok || JSON.stringify(data);
+      } catch (e) {
+        resDiv.innerText = "Error: " + e;
+      }
+    }
+  </script>
+</body>
+</html>
