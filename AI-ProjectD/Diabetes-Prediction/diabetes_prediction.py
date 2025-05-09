@@ -12,7 +12,7 @@ def predict(input, model_path='diabetes_model.keras', scaler_path='scaler.pkl'):
     if not model:
         raise Exception("Model not found.")
     if not scaler:
-        raise Exception("Encoder not found.")
+        raise Exception("Scaler not found.")
 
     input = pd.DataFrame([input])
     input = scaler.transform(input)
@@ -34,7 +34,7 @@ input_data_high_risk = {
     'Height': 1.70,         # Height (metre)
     'Weight': 100,          # Weight (kg)
     'FAVC': 3000,           # Caloric intake (cal)
-    'FCVC': 0,              # Vegetables consumption (number of meals contains vege)
+    'FCVC': 0,              # Vegetables consumption (number of meals contain vege)
     'NCP': 5,               # Number of meals per day e.g. Dinner
     'CAEC': 3,              # Frequent eat between main meals e.g. Brunch
     'SMOKE': 1,             # Smoker (1:Yes, 0, No)
