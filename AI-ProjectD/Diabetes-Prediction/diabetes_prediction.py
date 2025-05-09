@@ -20,9 +20,9 @@ def predict(input, model_path='diabetes_model.keras', scaler_path='scaler.pkl'):
     
     y_pred_class = np.round(y_pred_prob)
     if y_pred_class == 1:
-        confidence = y_pred_prob[0][0] * 100
+        confidence = round(y_pred_prob[0][0] * 100, 2)
     else:
-        confidence = (1 - y_pred_prob[0][0]) * 100
+        confidence = round((1 - y_pred_prob[0][0]) * 100, 2)
 
     has_diabetes = True if y_pred_class == 1 else False
     return has_diabetes, confidence
