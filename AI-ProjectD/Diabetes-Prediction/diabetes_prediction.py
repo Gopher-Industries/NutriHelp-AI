@@ -29,18 +29,18 @@ def predict(input, model_path='diabetes_model.keras', scaler_path='scaler.pkl'):
 
 #---------------------- Example Usage ----------------------#
 input_data_high_risk = {
-    'Gender': 1,            # Male (slightly higher risk in some populations)
-    'Age': 65,              # Older age (risk increases with age)
-    'Height': 1.70,         # Average height
-    'Weight': 100,          # High BMI (~34.6 – Obese)
-    'FAVC': 3000,           # High caloric intake
-    'FCVC': 0,              # No vegetables consumed
-    'NCP': 5,               # High number of meals per day
-    'CAEC': 3,              # Frequent use of car (sedentary behavior)
-    'SMOKE': 1,             # Smoker (linked to insulin resistance)
-    'CH2O': 1,              # Low water intake
-    'FAF': 0,               # No physical activity
-    'CALC': 2               # Frequent alcohol consumption
+    'Gender': 1,            # Gender (1:Male, 2:Female)
+    'Age': 65,              # Age (year)
+    'Height': 1.70,         # Height (metre)
+    'Weight': 100,          # Weight (kg)
+    'FAVC': 3000,           # Caloric intake (cal)
+    'FCVC': 0,              # Vegetables consumption (number of meals contains vege)
+    'NCP': 5,               # Number of meals per day e.g. Dinner
+    'CAEC': 3,              # Frequent eat between main meals e.g. Brunch
+    'SMOKE': 1,             # Smoker (1:Yes, 0, No)
+    'CH2O': 1,              # Water intake (litre)
+    'FAF': 0,               # Physical activity (hours)
+    'CALC': 2               # Alcohol consumption frequency (0:Never, 1:Sometimes, 2:Frequent)
 }
 
 has_diabetes, confidence = predict(input_data_high_risk, 
