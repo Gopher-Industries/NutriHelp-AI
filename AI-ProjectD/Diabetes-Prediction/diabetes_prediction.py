@@ -33,7 +33,7 @@ input_data_high_risk = {
     'Age': 65,              # Age (year)
     'Height': 1.70,         # Height (metre)
     'Weight': 100,          # Weight (kg)
-    'FAVC': 3000,           # Caloric intake (cal)
+    'FAVC': 3000,           # Calories intake (cal)
     'FCVC': 0,              # Vegetables consumption (number of meals contain vege)
     'NCP': 5,               # Number of meals per day e.g. Dinner
     'CAEC': 3,              # Frequent eat between main meals e.g. Brunch
