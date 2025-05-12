@@ -7,21 +7,22 @@ To use the predict function, you’ll need to provide an input in the form of a 
 import obesity_prediction
 
 # Example input data
-input_data = {
-    "Gender": "Male",
+input = {
+    "Gender": 1,
     "Age": 24.443011,
     "Height": 1.699998,
     "Weight": 81.66995,
     "family_history_with_overweight": "yes",
-    "FAVC": "yes",
-    "CAEC": "Sometimes",
-    "NCP": 2.983297,
+    "FAVC": 2500,
+    "FCVC": 2,
+    "NCP": 3,
+    "CAEC": 1,
+    "SMOKE": 0,
     "CH2O": 2.763573,
-    "SMOKE": "no",
     "SCC": "no",
     "FAF": 0,
     "TUE": 0.976473,
-    "CALC": "Sometimes",
+    "CALC": 1,
     "MTRANS": "Public_Transportation"
 }
 
@@ -31,8 +32,10 @@ encoder_path = 'AI-ProjectD/Obesity-Prediction/obesity_preprocessor.pkl'
 label_encoder_path = 'AI-ProjectD/Obesity-Prediction/obesity_label_encoder.pkl'
 
 # Make a prediction
-result = obesity_prediction.predict(input_data, model_path, encoder_path, label_encoder_path)
-print("Prediction Result:", result)
+result, confidence = predict(input, model_path, encoder_path, label_encoder_path)
+print(f"Prediction: {result}, Confidence: {confidence}%")
+
+>>> Prediction: Overweight_Level_II, Confidence: 78.76%
 ```
 
 ## Important Note ❗️
