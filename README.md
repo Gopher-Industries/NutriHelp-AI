@@ -205,7 +205,7 @@ NutriBot is an LLM-powered AI assistant designed for nutritional advice, documen
 
 🧠 Set Up Redis (Memory Storage)
 Windows
-Download Redis .msi from this link
+Download Redis .msi from this link: https://github.com/tporadowski/redis/releases
 
 Install it.
 
