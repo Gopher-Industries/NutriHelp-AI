@@ -9,19 +9,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
-# Copy folder to be built
-COPY nutrihelp_ai/ ./nutrihelp_ai/
+# Copy only requirements first to leverage Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Expose FastAPI app port
+# Copy app code last (this is what changes most often)
+COPY nutrihelp_ai/ ./nutrihelp_ai/
+
+# Expose port
 EXPOSE 8000
 
-# Start FastAPI app
+# Run the app
 CMD ["uvicorn", "nutrihelp_ai.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
