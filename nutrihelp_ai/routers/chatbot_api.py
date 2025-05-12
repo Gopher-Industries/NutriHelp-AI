@@ -1,19 +1,72 @@
-from fastapi import APIRouter, HTTPException
+# chatbot_api.py
+from fastapi import APIRouter, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, BackgroundTasks
 from pydantic import BaseModel
-import pandas as pd
-import numpy as np
-
-from nutrihelp_ai.services.retrieve_response import retrieve_response_service
+from nutrihelp_ai.services.nutribot.Agents import AgentClass
+from nutrihelp_ai.services.nutribot.AddDoc import AddDocClass
+from openai import RateLimitError
+import uuid
+import asyncio
 
 router = APIRouter()
 
 class UserInput(BaseModel):
     Input: str
 
-
-@router.post("/query")
-def retrieve_response(input_data: UserInput):
+@router.post("/chat")
+def sync_chat(query: str, background_tasks: BackgroundTasks):
     try:
-        return retrieve_response_service(input_data)
+        agent = AgentClass()
+        msg = agent.run_agent(query)
+        unique_id = str(uuid.uuid4())
+        return {"msg": msg, "id": unique_id}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/add_urls")
+async def add_urls(urls: str):
+    try:
+        add_doc = AddDocClass()
+        return await add_doc.add_urls(urls)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/add_pdfs")
+async def add_pdfs(file: UploadFile = File(...)):
+    try:
+        add_doc = AddDocClass()
+        return await add_doc.add_pdf(file)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    async def send_heartbeat():
+        while True:
+            try:
+                await websocket.send_text("Ping")
+                await asyncio.sleep(2)
+            except Exception:
+                break
+
+    asyncio.create_task(send_heartbeat())
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "Pong":
+                continue
+            try:
+                agent = AgentClass()
+                async for chunk in agent.run_agent_ws(data):
+                    await websocket.send_text(chunk)
+                await websocket.send_text("##END##")
+            except RateLimitError:
+                await websocket.send_text("Rate Limit Error")
+                break
+            except Exception as e:
+                await websocket.send_text(f"Error: {str(e)}")
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await websocket.close()
