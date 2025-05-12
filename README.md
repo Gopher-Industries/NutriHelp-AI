@@ -174,3 +174,73 @@ fetch("http://localhost:8000/predict", {
 ```
 
 ---
+
+
+# NutriBot AI Setup Guide
+
+NutriBot is an LLM-powered AI assistant designed for nutritional advice, document ingestion, emotion-aware dialogue, and smart retrieval of local or online health information. This system is integrated with LangChain, OpenAI models, Redis memory, and optional external tools (SERP API and Nutrition API).
+
+---
+
+## 🚀 Features
+
+- ✅ Emotion-aware chat using GPT-4o or GPT-3.5-Turbo via OpenAI API
+- ✅ Tool calling for nutrition lookup, document search (RAG), and web search
+- ✅ Long-term memory via Redis
+- ✅ PDF and webpage document ingestion with vector storage using Qdrant
+- ✅ WebSocket streaming and REST support
+
+---
+
+## 🧩 Requirements
+
+- Python 3.10 or 3.11
+- Git
+- pip
+- Redis
+
+---
+
+## 📦 Installation Steps
+
+🧠 Set Up Redis (Memory Storage)
+Windows
+Download Redis .msi from this link
+
+Install it.
+
+Add the Redis install folder to your system PATH. Example:
+
+C:\Program Files\Redis
+
+Run Redis server in terminal:
+
+```bash
+redis-server
+```
+macOS
+
+```bash
+brew install redis
+brew services start redis
+
+```
+Ubuntu/Debian
+```bash
+sudo apt update
+sudo apt install redis-server
+sudo service redis-server start
+```
+
+🔐 Configure Environment Variables
+Create a .env file in the root directory:
+Paste in the following, replacing with your actual keys:
+
+```
+OPENAI_API_KEY=your-openai-key
+OPENAI_API_BASE=https://api.openai.com/v1
+SERPAPI_API_KEY=your-serpapi-key
+NINJA_API_KEY=your-ninja-api-key
+
+```
+❗️ Never commit this file. It is listed in .gitignore. Ask person in charge for the actual file.
