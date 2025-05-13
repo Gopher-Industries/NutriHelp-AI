@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from nutrihelp_ai.routers import image_api, medical_report_api, chatbot_api
+from nutrihelp_ai.routers import medical_report_api, chatbot_api
 from nutrihelp_ai.extensions import limiter
 
 import logging
@@ -31,7 +31,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ---- Register Routers ----
-app.include_router(image_api, prefix="/ai-model/image", tags=["Image Classification"])
+# app.include_router(image_api, prefix="/ai-model/image", tags=["Image Classification"])
 app.include_router(medical_report_api, prefix="/ai-model/medical-report", tags=["Medical Report Generation"])
 app.include_router(chatbot_api, prefix="/ai-model/chatbot", tags=["AI Assistant"])
 
