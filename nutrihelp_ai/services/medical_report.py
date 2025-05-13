@@ -3,7 +3,8 @@ import joblib
 import tensorflow as tf
 import pandas as pd
 from nutrihelp_ai.utils.exceptions import InvalidInputException, ModelNotLoadedException
-
+from nutrihelp_ai.services.predict_obesity import predict_obesity_service
+from nutrihelp_ai.services.predict_diabetes import predict_diabetes_service
 # Load obesity model components
 try:
     preprocessor = joblib.load("nutrihelp_ai/model/obesity_preprocessor.pkl")
@@ -37,45 +38,24 @@ def generate_medical_report_service(input_data):
     input_dict = input_data.dict()
 
     # ===== OBESITY PREDICTION (with fallback) =====
-    try:
-        if not all([preprocessor, label_encoder, obesity_model]):
-            raise ValueError("Obesity model or components not loaded.")
+    obesity_label, obesity_confidence = predict_obesity_service(input_dict)
 
-        obesity_input = input_dict if not required_obesity_features else {
-            key: input_dict[key] for key in required_obesity_features if key in input_dict
-        }
-        obesity_input_df = pd.DataFrame([obesity_input])
-        obesity_processed = preprocessor.transform(obesity_input_df)
-        obesity_probs = obesity_model.predict(obesity_processed)
-        obesity_index = int(np.argmax(obesity_probs))
-        obesity_label = label_encoder.inverse_transform([obesity_index])[0]
-        obesity_confidence = float(np.max(obesity_probs))
-
-    except Exception:
-        # Fallback dummy result
-        obesity_label = "Obese"
-        obesity_confidence = 0.85
 
     # ===== DIABETES PREDICTION =====
     try:
-        diabetes_input = {key: input_dict[key] for key in required_diabetes_features if key in input_dict}
-        diabetes_input_df = pd.DataFrame([diabetes_input])
-        diabetes_scaled = diabetes_scaler.transform(diabetes_input_df)
-        diabetes_prob = float(diabetes_model.predict(diabetes_scaled)[0][0])
-        diabetes_prediction = diabetes_prob >= 0.5
+        diabetes_prediction, diabetes_confidence = predict_diabetes_service(input_dict)
     except Exception as e:
-        raise RuntimeError(f"Diabetes prediction failed: {str(e)}")
+        raise RuntimeError(f"Diabetes prediction failed: {e}")
 
-    # ===== COMBINED RESPONSE =====
     return {
         "medical_report": {
             "obesity_prediction": {
                 "obesity_level": obesity_label,
-                "confidence": round(obesity_confidence, 3)
+                "confidence": obesity_confidence
             },
             "diabetes_prediction": {
                 "diabetes": diabetes_prediction,
-                "confidence": round(diabetes_prob, 3)
+                "confidence": diabetes_confidence
             }
         }
     }
