@@ -12,15 +12,23 @@ router = APIRouter()
 class UserInput(BaseModel):
     Input: str
 
-@router.post("/chat")
-def sync_chat(query: str, background_tasks: BackgroundTasks):
+class ChatRequest(BaseModel):
+    query: str
+
+class ChatResponse(BaseModel):
+    msg: str
+    id: str
+
+
+@router.post("/chat", response_model=ChatResponse)
+def sync_chat(request: ChatRequest, background_tasks: BackgroundTasks):
     try:
         agent = AgentClass()
-        msg = agent.run_agent(query)
+        msg = agent.run_agent(request.query)
         unique_id = str(uuid.uuid4())
-        return {"msg": msg, "id": unique_id}
+        return ChatResponse(msg=msg, id=unique_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @router.post("/add_urls")
 async def add_urls(urls: str):
