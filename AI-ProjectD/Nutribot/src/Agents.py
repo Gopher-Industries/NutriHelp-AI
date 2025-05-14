@@ -18,7 +18,7 @@ class AgentClass:
     def __init__(self):
         self.modelname = "gpt-4o-mini"
         self.chatmodel = ChatOpenAI(model=self.modelname)
-        self.tools = [search]
+        self.tools = [search,get_info_from_local,get_nutrition_info]
         self.memorykey = "chat_history"
         self.feeling = "default"
         self.prompt = PromptClass(memorykey=self.memorykey,feeling=self.feeling).Prompt_Structure()
