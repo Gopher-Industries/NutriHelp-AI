@@ -42,7 +42,7 @@ class AgentClass:
         res = self.agent_chain.invoke({
             "input": input,
         })
-        return res
+        return res["output"]
     
     async def run_agent_ws(self,input):
         # run emotion sensing
