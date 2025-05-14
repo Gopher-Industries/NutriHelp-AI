@@ -26,7 +26,12 @@ def get_info_from_local(query: str) -> str:
     from langchain_openai import OpenAIEmbeddings
 
     # Use the persistent Qdrant database directory within the project
-    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "qdrant_data"))
+    db_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..","..", "data", "nutribot", "qdrant_data"
+        )
+    )
     client = QdrantClient(path=db_path)
 
     retriever_qr = QdrantVectorStore(client, "local_documents_demo", OpenAIEmbeddings())

@@ -17,7 +17,12 @@ class AddDocClass:
         self.splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=50)
 
         # Create a persistent path inside the project folder
-        self.persist_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "qdrant_data"))
+        self.persist_dir = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),  # current file location
+                "..","..", "data", "nutribot", "qdrant_data"
+            )
+        )        
         os.makedirs(self.persist_dir, exist_ok=True)  # Ensure folder exists
 
         client = QdrantClient(path=self.persist_dir)

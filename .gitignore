@@ -2,7 +2,7 @@
 .idea
 .env
 **/node_modules/
-
+nutrihelp_ai/data
 venv/
 env/
 .venv/
