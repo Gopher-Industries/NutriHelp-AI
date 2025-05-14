@@ -29,7 +29,7 @@ def sync_chat(request: ChatRequest, background_tasks: BackgroundTasks):
         return ChatResponse(msg=msg, id=unique_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-
+    
 @router.post("/add_urls")
 async def add_urls(urls: str):
     try:
