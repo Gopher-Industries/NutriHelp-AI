@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from nutrihelp_ai.routers import medical_report_api, chatbot_api
@@ -24,6 +25,15 @@ app = FastAPI(
     title="NutriHelp AI API",
     description="API for AI models",
     version="1.0"
+)
+
+# ---- Allow all origins (for development) ----
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ---- Attach Limiter ----
