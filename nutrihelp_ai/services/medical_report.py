@@ -37,15 +37,11 @@ def generate_medical_report_service(input_data):
 
     input_dict = input_data.dict()
 
-    # ===== OBESITY PREDICTION (with fallback) =====
+    # ===== OBESITY PREDICTION =====
     obesity_label, obesity_confidence = predict_obesity_service(input_dict)
 
-
     # ===== DIABETES PREDICTION =====
-    try:
-        diabetes_prediction, diabetes_confidence = predict_diabetes_service(input_dict)
-    except Exception as e:
-        raise RuntimeError(f"Diabetes prediction failed: {e}")
+    diabetes_prediction, diabetes_confidence = predict_diabetes_service(input_dict)
 
     return {
         "medical_report": {
