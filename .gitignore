@@ -12,3 +12,6 @@ __pycache__/
 *.pth
 *.h5
 .DS_Store
+
+*.tar.gz
+2025-T1/Food-Image-Classifier/scripts/data/food-101/images/
