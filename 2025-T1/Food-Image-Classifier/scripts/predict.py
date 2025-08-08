@@ -12,7 +12,9 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 MODEL_PATH = '../outputs/models/food_classifier.pth'
 IMAGE_SIZE = (224, 224)
 
-CLASS_NAMES = Food101(root='data', download=True).classes  
+#CLASS_NAMES = Food101(root='data', download=True).classes  
+with open("classes.json", "r") as f:
+    CLASS_NAMES = json.load(f)  
 
 transform = transforms.Compose([
     transforms.Resize(IMAGE_SIZE),
