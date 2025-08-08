@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, WebSocket, WebSo
 from pydantic import BaseModel
 from nutrihelp_ai.services.nutribot.Agents import AgentClass
 from nutrihelp_ai.services.nutribot.AddDoc import AddDocClass
+
 from openai import RateLimitError
 import uuid
 import asyncio
@@ -78,3 +79,5 @@ async def websocket_endpoint(websocket: WebSocket):
         pass
     finally:
         await websocket.close()
+
+

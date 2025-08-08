@@ -3,10 +3,9 @@ import joblib
 import tensorflow as tf
 import numpy as np
 from nutrihelp_ai.utils.exceptions import InvalidInputException, ModelNotLoadedException
+from nutrihelp_ai.utils.model_loader import load_keras_model, load_joblib_file, MODEL_PATHS
 
-# Model files
-MODEL_PATH = "nutrihelp_ai/model/diabetes_model.keras"
-SCALER_PATH = "nutrihelp_ai/model/diabetes_scaler.pkl"
+
 
 # Expected input fields
 REQUIRED_FEATURES = [
@@ -17,8 +16,8 @@ REQUIRED_FEATURES = [
 def predict_diabetes_service(input_dict: dict):
     try:
         # Load model + scaler
-        model = tf.keras.models.load_model(MODEL_PATH)
-        scaler = joblib.load(SCALER_PATH)
+        model = load_keras_model("diabetes_model")
+        scaler = load_joblib_file("diabetes_scaler")
 
         # Extract and prepare input
         filtered = {key: input_dict[key] for key in REQUIRED_FEATURES if key in input_dict}
