@@ -1,10 +1,6 @@
 import torch
 from torchvision import transforms
 
-# Load model if you have one
-# model = torch.load("nutrihelp_ai/models/resnet50d.pth")
-# model.eval()
-
 
 def transform_image(image):
     transform = transforms.Compose([

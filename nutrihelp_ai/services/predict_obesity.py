@@ -4,7 +4,7 @@ import joblib
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 from nutrihelp_ai.utils.exceptions import InvalidInputException, ModelNotLoadedException
-
+from nutrihelp_ai.utils.model_loader import load_keras_model, load_joblib_file, MODEL_PATHS
 
 # Data Preprocessing
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -13,10 +13,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder
 
 
-# Default model paths
-MODEL_PATH = "nutrihelp_ai/model/obesity_model.keras"
-ENCODER_PATH = "nutrihelp_ai/model/obesity_preprocessor.pkl"
-LABEL_ENCODER_PATH = "nutrihelp_ai/model/obesity_label_encoder.pkl"
 
 def preprocess_to_categorical(input):
     # Gender (1:Male, 2:Female)
@@ -95,7 +91,6 @@ def preprocess_to_numerical(df, target_column='NObeyesdad', mode='train', encode
 
 
 def predict_obesity_service(input_dict: dict):
-
     try:
         # Preprocess input: convert numeric to categorical (FAVC, Gender, etc.)
         categorical_input = preprocess_to_categorical(input_dict)
@@ -107,14 +102,13 @@ def predict_obesity_service(input_dict: dict):
             df=df_input,
             target_column=None,
             mode='test',
-            encoder_path=ENCODER_PATH,
-            label_encoder_path=LABEL_ENCODER_PATH
+            encoder_path=MODEL_PATHS["obesity_preprocessor"],
+            label_encoder_path=MODEL_PATHS["obesity_label_encoder"]
         )
 
-        # Load model and label encoder
-        model = load_model(MODEL_PATH)
-        label_encoder = joblib.load(LABEL_ENCODER_PATH)
-        
+        # Load model and label encoder from utils
+        model = load_keras_model("obesity_model")
+        label_encoder = load_joblib_file("obesity_label_encoder")
 
         # Predict
         y_probs = model.predict(X_transformed)
