@@ -5,13 +5,18 @@ import pandas as pd
 from nutrihelp_ai.utils.exceptions import InvalidInputException, ModelNotLoadedException
 from nutrihelp_ai.services.predict_obesity import predict_obesity_service
 from nutrihelp_ai.services.predict_diabetes import predict_diabetes_service
+<<<<<<< HEAD
 from nutrihelp_ai.services.nutribot.Agents import AgentClass  # <-- NutriBot agent
+=======
+from nutrihelp_ai.utils.model_loader import load_keras_model, load_joblib_file, MODEL_PATHS
+
+>>>>>>> f52e7122478d8cf656be02d9464e313ee486eefa
 
 # Load obesity model components
 try:
-    preprocessor = joblib.load("nutrihelp_ai/model/obesity_preprocessor.pkl")
-    label_encoder = joblib.load("nutrihelp_ai/model/obesity_label_encoder.pkl")
-    obesity_model = tf.keras.models.load_model("nutrihelp_ai/model/obesity_model.keras")
+    preprocessor = load_joblib_file("obesity_preprocessor")
+    label_encoder = load_joblib_file("obesity_label_encoder")
+    obesity_model = load_keras_model("obesity_model")
 except Exception:
     preprocessor = None
     label_encoder = None
@@ -19,8 +24,8 @@ except Exception:
 
 # Load diabetes model components
 try:
-    diabetes_model = tf.keras.models.load_model("nutrihelp_ai/model/diabetes_model.keras")
-    diabetes_scaler = joblib.load("nutrihelp_ai/model/diabetes_scaler.pkl")
+    diabetes_model = load_keras_model("diabetes_model")
+    diabetes_scaler = load_joblib_file("diabetes_scaler")
 except Exception:
     diabetes_model = None
     diabetes_scaler = None
