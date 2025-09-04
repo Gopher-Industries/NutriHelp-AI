@@ -17,11 +17,12 @@ class AgentClass:
         load_dotenv()
 
         # Init Groq
-        groq_key = os.getenv("GROQ_API_KEY")
+        groq_key = os.environ.get('GROQ_API_KEY')
+
         self.llm_client = Groq(api_key=groq_key) if Groq and groq_key else None
 
         # Init Chroma
-        chroma_key = os.getenv("CHROMA_API_KEY")
+        chroma_key = os.environ.get("CHROMA_API_KEY")
         if chromadb and chroma_key:
             try:
                 client = chromadb.CloudClient(
@@ -45,7 +46,9 @@ class AgentClass:
             return self._safe_reply(prompt)
         try:
             r = self.llm_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "user", "content": prompt},
+                    ],
                 model=model,
             )
             return r.choices[0].message.content
