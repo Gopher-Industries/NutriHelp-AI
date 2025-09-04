@@ -42,7 +42,7 @@ def sync_chat(request: ChatRequest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @router.post("/env_stat", response_model=ChatResponse)
-def sync_chat(request: ChatRequest, background_tasks: BackgroundTasks):
+def sync_chat():
     try:
         agent = AgentClass()
         msg = agent.env_status()
