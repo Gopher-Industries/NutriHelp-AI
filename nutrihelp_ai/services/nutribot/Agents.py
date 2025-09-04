@@ -38,7 +38,7 @@ class AgentClass:
         self.count = self.collection.count() if self.collection else 0
 
     def _safe_reply(self, prompt: str) -> str:
-        return f"[offline] {prompt}"
+        return f"I'm currently unavailable."
 
     def _chat(self, prompt: str, model: str):
         if not self.llm_client:
@@ -58,5 +58,14 @@ class AgentClass:
     async def run_agent_ws(self, prompt, model="llama-3.1-8b-instant"):
         return self._chat(prompt, model)
 
-    def generate_with_rag(self, prompt, model="llama-3.1-8b-instant"):
+    def generate_with_rag(self, prompt, n_results=5, model="llama-3.1-8b-instant"):
+        res = self.collection.query(query_texts=[prompt], n_results=n_results)
+        retrieved_contexts = res.get("documents", [[]])[0]
+        prompt = prompt + f"\nUse this as context for answering: {retrieved_contexts}"
         return self._chat(prompt, model)
+    
+    def add_documents(self, docs):
+        for doc in docs:
+            _id = f"id{self.count}"
+            self.collection.upsert(ids=[_id], documents=[doc])
+            self.count += 1
