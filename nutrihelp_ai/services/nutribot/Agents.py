@@ -64,13 +64,12 @@ class AgentClass:
             "GROQ_API_KEY_length": len(g),
             "CHROMA_API_KEY_present": bool(c),
             "CHROMA_API_KEY_length": len(c),
-            # Useful Render hints:
             "PORT_present": bool(os.getenv("PORT")),
             "RENDER_EXTERNAL_URL_present": bool(os.getenv("RENDER_EXTERNAL_URL")),
         }
 
     def _safe_reply(self, prompt: str) -> str:
-        return f"I'm currently unavailable."
+        return f"Nutribot is currently unavailable."
 
     def _chat(self, prompt: str, model: str):
         if not self.llm_client:
