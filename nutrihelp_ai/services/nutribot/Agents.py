@@ -31,8 +31,16 @@ class AgentClass:
         logging.info("GROQ_API_KEY: %s", _mask_presence(groq_key))
         logging.info("CHROMA_API_KEY: %s", _mask_presence(chroma_key))
 
-        # Init Chroma
-        chroma_key = os.environ.get("CHROMA_API_KEY")
+        # --- Init Groq ---
+        self.llm_client = None
+        if Groq and groq_key:
+            try:
+                self.llm_client = Groq(api_key=groq_key)
+            except Exception as e:
+                logging.error("Failed to init Groq client: %s", e)
+
+        # --- Init Chroma ---
+        self.collection = None
         if chromadb and chroma_key:
             try:
                 client = chromadb.CloudClient(
@@ -41,10 +49,8 @@ class AgentClass:
                     api_key=chroma_key,
                 )
                 self.collection = client.get_or_create_collection(name=collection_name)
-            except:
-                self.collection = None
-        else:
-            self.collection = None
+            except Exception as e:
+                logging.error("Failed to init Chroma client/collection: %s", e)
 
         self.count = self.collection.count() if self.collection else 0
 
