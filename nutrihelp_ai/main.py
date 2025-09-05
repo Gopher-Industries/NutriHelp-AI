@@ -41,7 +41,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ---- Health Check ----
-@app.get("/", methods=["GET", "HEAD"])
+@app.get("/")
 async def root():
     return {"status": "ok"}
 
