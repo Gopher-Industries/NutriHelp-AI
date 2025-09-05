@@ -41,13 +41,13 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ---- Health Check ----
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
-    return {"status": "ok"}
+    return JSONResponse(status_code=200, content={"status": "ok"})
 
 @app.get("/healthz")
 async def healthz():
-    return {"status": "ok"}
+    return JSONResponse(status_code=200, content={"status": "ok"})
 
 # ---- Register Routers ----
 app.include_router(medical_report_api, prefix="/ai-model/medical-report", tags=["Medical Report Generation"])
