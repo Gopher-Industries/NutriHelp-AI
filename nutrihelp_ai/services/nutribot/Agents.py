@@ -55,18 +55,15 @@ class AgentClass:
         self.count = self.collection.count() if self.collection else 0
 
     @staticmethod
-    def env_status() -> dict:
-        """Return safe booleans/lengths for env keys (no secrets)."""
+    def env_status() -> str:
         g = os.getenv("GROQ_API_KEY") or ""
         c = os.getenv("CHROMA_API_KEY") or ""
-        return {
-            "GROQ_API_KEY_present": bool(g),
-            "GROQ_API_KEY_length": len(g),
-            "CHROMA_API_KEY_present": bool(c),
-            "CHROMA_API_KEY_length": len(c),
-            "PORT_present": bool(os.getenv("PORT")),
-            "RENDER_EXTERNAL_URL_present": bool(os.getenv("RENDER_EXTERNAL_URL")),
-        }
+        return (
+            f"GROQ_API_KEY: {'present' if g else 'missing'} (len={len(g)})\n"
+            f"CHROMA_API_KEY: {'present' if c else 'missing'} (len={len(c)})\n"
+            f"PORT: {'present' if os.getenv('PORT') else 'missing'}\n"
+            f"RENDER_EXTERNAL_URL: {'present' if os.getenv('RENDER_EXTERNAL_URL') else 'missing'}"
+        )
 
     def _safe_reply(self, prompt: str) -> str:
         return f"Nutribot is currently unavailable."
