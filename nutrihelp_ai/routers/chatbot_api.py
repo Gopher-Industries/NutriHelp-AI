@@ -1,10 +1,9 @@
 # chatbot_api.py
-from fastapi import APIRouter, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from nutrihelp_ai.services.nutribot.Agents import AgentClass
 
 import uuid
-import asyncio
 
 router = APIRouter()
 
