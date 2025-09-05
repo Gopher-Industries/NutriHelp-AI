@@ -54,17 +54,6 @@ class AgentClass:
 
         self.count = self.collection.count() if self.collection else 0
 
-    @staticmethod
-    def env_status() -> str:
-        g = os.getenv("GROQ_API_KEY") or ""
-        c = os.getenv("CHROMA_API_KEY") or ""
-        return (
-            f"GROQ_API_KEY: {'present' if g else 'missing'} (len={len(g)})\n"
-            f"CHROMA_API_KEY: {'present' if c else 'missing'} (len={len(c)})\n"
-            f"PORT: {'present' if os.getenv('PORT') else 'missing'}\n"
-            f"RENDER_EXTERNAL_URL: {'present' if os.getenv('RENDER_EXTERNAL_URL') else 'missing'}"
-        )
-
     def _safe_reply(self, prompt: str) -> str:
         return f"Nutribot is currently unavailable."
 
@@ -88,14 +77,22 @@ class AgentClass:
     async def run_agent_ws(self, prompt, model="llama-3.1-8b-instant"):
         return self._chat(prompt, model)
 
-    def generate_with_rag(self, prompt, n_results=5, model="llama-3.1-8b-instant"):
+    def generate_with_rag(self, prompt, n_results=5, model="llama-3.1-8b-instant", distance_threshold=0.8):
         if not self.collection:
             logging.warning("Chroma collection missing; falling back to plain chat.")
             return self._chat(prompt, model)
         
         try:
             res = self.collection.query(query_texts=[prompt], n_results=n_results)
-            retrieved_contexts = res.get("documents", [[]])[0]
+            docs = res.get("documents", [[]])[0]
+            distances = res.get("distances", [[]])[0]
+
+            filtered_docs = []
+            for doc, distance in zip(docs, distances):
+                if distance <= distance_threshold:
+                    filtered_docs.append(doc)
+            retrieved_contexts = filtered_docs if filtered_docs else []
+            print(retrieved_contexts)
         except Exception as e:
             logging.error("Chroma query failed: %s", e)
             retrieved_contexts = []
