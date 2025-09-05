@@ -40,6 +40,15 @@ app.add_middleware(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# ---- Health Check ----
+@app.get("/")
+async def healthz():
+    return {"status": "ok"}
+
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
+
 # ---- Register Routers ----
 app.include_router(medical_report_api, prefix="/ai-model/medical-report", tags=["Medical Report Generation"])
 app.include_router(chatbot_api, prefix="/ai-model/chatbot", tags=["AI Assistant"])
