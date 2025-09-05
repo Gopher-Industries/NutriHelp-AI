@@ -92,7 +92,6 @@ class AgentClass:
                 if distance <= distance_threshold:
                     filtered_docs.append(doc)
             retrieved_contexts = filtered_docs if filtered_docs else []
-            print(retrieved_contexts)
         except Exception as e:
             logging.error("Chroma query failed: %s", e)
             retrieved_contexts = []
