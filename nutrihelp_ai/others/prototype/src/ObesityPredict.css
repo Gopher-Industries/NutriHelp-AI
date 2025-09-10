@@ -128,7 +128,7 @@ input:focus, select:focus {
 
 /* ==== 结果页卡片 ==== */
 .result-card {
-  max-width: 600px;
+  width: 800px;
   margin: 80px auto;
   padding: 40px 30px;
   background: linear-gradient(to bottom right, #f0f9ff, #ffffff);
