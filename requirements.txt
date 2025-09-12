@@ -5,4 +5,4 @@ scikit-learn
 tensorflow
 matplotlib
 requests
-gunicorn
+uvicorn
