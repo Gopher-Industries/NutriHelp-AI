@@ -1,8 +1,27 @@
-flask
+# Core API framework
+fastapi==0.115.12
+uvicorn==0.34.0
+pydantic==2.9.2
+python-multipart==0.0.20
+slowapi==0.1.9
+
+# Image processing
+Pillow==11.1.0
+opencv-python-headless==4.11.0.86
+albumentations==2.0.5
+
+# ML libraries
 numpy
 pandas
 scikit-learn
-tensorflow
 matplotlib
-requests
-uvicorn
+tensorflow==2.19.0
+scikit-learn==1.6.1
+joblib==1.4.2
+timm==1.0.15
+torch==2.6.0
+torchvision==0.21.0
+h5py==3.13.0
+
+chromadb
+groq
