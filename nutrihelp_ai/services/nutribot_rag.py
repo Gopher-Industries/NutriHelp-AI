@@ -1,8 +1,11 @@
 import os, json, re
 from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 
 from groq import Groq
 import chromadb
+
+load_dotenv()
 
 # ----------------- Config -----------------
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
