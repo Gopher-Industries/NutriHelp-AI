@@ -1,48 +1,28 @@
 from fastapi import UploadFile
-from nutrihelp_ai.utils.model_loader import load_keras_model, load_joblib_file
+from PIL import Image
+from nutrihelp_ai.services.Food_Image_Classifier.scripts.predict import predict_image
+import os
+import tempfile
 
 class ImagePipelineService:
-    def __init__(self):
-        # Try to load models (they might not be added yet)
-        try:
-            self.food_classifier = load_keras_model("food_classifier_model")
-        except:
-            self.food_classifier = None
-
-        try:
-            self.calorie_estimator = load_keras_model("calorie_estimator_model")
-        except:
-            self.calorie_estimator = None
-
     async def process_image(self, file: UploadFile):
-        # Step 1: Load and decode image
-        image_bytes = await file.read()
-        # TODO: In future, convert bytes to image array (e.g., using PIL or OpenCV)
+        # Step 1: Save uploaded file temporarily
+        suffix = os.path.splitext(file.filename)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(await file.read())
+            temp_path = tmp.name
+
         print("[Stage 1] Image received and loaded.")
 
-        # Step 2: Preprocess image for food classifier
-        # TODO: Resize, normalize, expand dims etc.
-        print("[Stage 2] Preprocessed image for food classification.")
+        # Step 2: Run prediction using your trained model
+        result = predict_image(temp_path)
+        food_type = result["predicted_class"]
+        confidence = result["confidence"]  # get confidence from predict_image
+        print(f"[Stage 2] Food classification complete: {food_type} ({confidence:.2f})")
 
-        # Step 3: Predict food type using classifier
-        if self.food_classifier:
-            # TODO: real prediction logic
-            food_type = "predicted_food_type"
-        else:
-            food_type = "pizza"  # Dummy
-        print("[Stage 3] Food classification complete.")
+        # Step 3: Estimate calories (dummy logic for now)
+        estimated_calories = 200  # placeholder
+        print(f"[Stage 3] Calorie estimation complete: {estimated_calories} kcal")
 
-        # Step 4: Extract features or preprocess for calorie estimator
-        # TODO: use image or predicted food type as input
-        print("[Stage 4] Prepared features for calorie estimation.")
-
-        # Step 5: Estimate calories using second model
-        if self.calorie_estimator:
-            # TODO: real prediction logic
-            estimated_calories = 123  # placeholder
-        else:
-            estimated_calories = 285  # Dummy
-        print("[Stage 5] Calorie estimation complete.")
-
-        # Step 6: Return structured result
-        return food_type, estimated_calories
+        # Return confidence as well
+        return food_type, estimated_calories, confidence

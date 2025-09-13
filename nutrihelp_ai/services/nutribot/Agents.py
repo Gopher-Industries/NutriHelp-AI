@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import logging
+import json
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -109,3 +110,26 @@ class AgentClass:
                 self.count += 1
             except Exception as e:
                 logging.error("Failed to upsert doc %s: %s", _id, e)
+
+
+        # -------------------------
+    # Food image classfier 
+    # -------------------------
+    def run_agent_dynamic(self, prompt, model="llama-3.1-8b-instant"):
+        """
+        Runs the LLM and ensures the output is a dict with 'calories' and 'recommendation'.
+        Falls back to default structure if parsing fails.
+        """
+        # Use RAG if Chroma collection exists
+        response_str = self.generate_with_rag(prompt, model=model) if self.collection else self.run_agent(prompt, model=model)
+
+        try:
+            # Try parsing JSON output from LLM
+            nutrition_data = json.loads(response_str)
+            # Ensure keys exist
+            nutrition_data.setdefault("calories", None)
+            nutrition_data.setdefault("recommendation", "")
+            return nutrition_data
+        except json.JSONDecodeError:
+            # Fallback: return the raw text as 'recommendation'
+            return {"calories": None, "recommendation": response_str}
