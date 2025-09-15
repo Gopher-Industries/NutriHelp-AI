@@ -8,20 +8,17 @@ import chromadb
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
 GROQ_MODEL     = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
-# If you really want cloud, set CHROMA_MODE=cloud and provide API key + tenant + database
-CHROMA_MODE     = os.getenv("CHROMA_MODE", "local")  # "local" | "cloud"
-CHROMA_PATH     = os.getenv("CHROMA_PATH", "./.chroma")  # for local persistent
+CHROMA_MODE     = os.getenv("CHROMA_MODE", "local")
+CHROMA_PATH     = os.getenv("CHROMA_PATH", "./.chroma")
 CHROMA_TENANT   = os.getenv("CHROMA_TENANT")
 CHROMA_DATABASE = os.getenv("CHROMA_DATABASE")
 CHROMA_API_KEY  = os.getenv("CHROMA_API_KEY")
 
 RAG_COLLECTION  = os.getenv("RAG_COLLECTION", "aus_food_nutrition")
 
-
 def _require_env(name: str, value: Optional[str]):
     if not value:
         raise RuntimeError(f"Missing required env var: {name}")
-
 
 STRICT_SCHEMA_EXAMPLE = {
     "suggestion": "string",
@@ -34,9 +31,9 @@ STRICT_SCHEMA_EXAMPLE = {
             "meal_notes": "string",
             "reminders": ["string"]
         }
-    ]
+    ],
+    "progress_analysis": "string"
 }
-
 
 class RAG:
     def __init__(self, collection_name: str = RAG_COLLECTION):
@@ -58,7 +55,6 @@ class RAG:
                 api_key=CHROMA_API_KEY,
             )
         else:
-            # Local persistent storage (recommended for development)
             self._client = chromadb.PersistentClient(path=CHROMA_PATH)
 
         self._col = self._client.get_or_create_collection(name=self.collection_name)
@@ -72,18 +68,14 @@ class RAG:
 
     def retrieve(self, query: str, n_results: int = 4) -> List[str]:
         self._ensure_client()
-        # Gracefully handle empty collection
         try:
             count = self._col.count()
             if count == 0:
                 return []
         except Exception:
-            # If count isn’t supported for some reason, still attempt query
             pass
-
         res = self._col.query(query_texts=[query], n_results=n_results)
         return res.get("documents", [[]])[0]
-
 
 class NutriBotRAGService:
     def __init__(self, rag: Optional[RAG] = None):
@@ -98,25 +90,25 @@ class NutriBotRAGService:
 
     @staticmethod
     def _force_json(text: str) -> Dict[str, Any]:
-        # Extract first {...}; fix common trailing commas; fallback
         m = re.search(r"\{.*\}", text, flags=re.DOTALL)
         raw = m.group(0) if m else text
         raw = re.sub(r",(\s*[\]}])", r"\1", raw)
         try:
             return json.loads(raw)
         except Exception:
-            return {"suggestion": raw.strip(), "weekly_plan": []}
+            return {"suggestion": raw.strip(), "weekly_plan": [], "progress_analysis": ""}
 
     def _build_prompt(self, analyzed_health_condition: Dict[str, Any], n_results: int = 4) -> str:
-        condition_json = json.dumps(analyzed_health_condition, ensure_ascii=False)
+        condition_json = json.dumps(analyzed_health_condition, ensure_ascii=False, indent=2)
         schema_json = json.dumps(STRICT_SCHEMA_EXAMPLE, ensure_ascii=False, indent=2)
 
         user_task = (
-            "Generate a 4-weekly diet & workout plan for the user. "
-            "Return STRICT JSON only, no extra text."
+            "Generate a 4-week diet & workout plan and analyze progress across reports. "
+            "If multiple reports are given, compare them and include improvement/no-improvement notes "
+            "in the 'progress_analysis' field. Return STRICT JSON only."
         )
         ctx_snips = self.rag.retrieve(
-            query=f"{user_task}\nUser condition: {condition_json}",
+            query=f"{user_task}\nUser condition history: {condition_json}",
             n_results=n_results,
         )
         ctx_joined = "\n- " + "\n- ".join(ctx_snips) if ctx_snips else ""
@@ -129,9 +121,11 @@ class NutriBotRAGService:
             f"{schema_json}\n"
             "3) Provide realistic numeric values. 'week' starts at 1.\n"
             "4) 'target_calories_per_day' must be an integer.\n"
-            "5) Keep 'workouts' as concise bullet-like strings.\n\n"
-            f"USER CONDITION JSON:\n{condition_json}\n\n"
-            "RAG CONTEXT (use to ground recommendations and Australian nutrition norms):\n"
+            "5) Keep 'workouts' as concise bullet-like strings.\n"
+            "6) If multiple reports are given, add progress trend in 'progress_analysis'.\n"
+            "\nUSER CONDITION HISTORY:\n"
+            f"{condition_json}\n"
+            "\nRAG CONTEXT (use to ground recommendations and Australian nutrition norms):\n"
             f"{ctx_joined}\n"
         )
 
@@ -157,4 +151,5 @@ class NutriBotRAGService:
         data = self._force_json(out)
         data.setdefault("suggestion", "")
         data.setdefault("weekly_plan", [])
+        data.setdefault("progress_analysis", "")
         return data
