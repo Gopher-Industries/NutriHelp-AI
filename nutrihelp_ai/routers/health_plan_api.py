@@ -66,11 +66,7 @@ class HealthGoal(BaseModel):
 
 class HealthPlanInput(BaseModel):
     medical_report: List[MedicalReport]
-    health_goal: HealthGoal      #New
-    # Optional controls to mirror notebook cells when you tweak runs
-    n_results: int = Field(4, ge=1, le=10)
-    max_tokens: int = Field(1200, ge=256, le=4096)
-    temperature: float = Field(0.2, ge=0.0, le=1.0)
+    health_goal: HealthGoal
 
 # ---------- Response Models (strict JSON as per notebook) ----------
 class WeekPlan(BaseModel):
@@ -104,9 +100,6 @@ async def generate_health_plan(request: Request, input_data: HealthPlanInput):
 
         raw = _service.generate_plan(
             analyzed_health_condition=analyzed,
-            n_results=input_data.n_results,
-            max_tokens=input_data.max_tokens,
-            temperature=input_data.temperature,
         )
 
         logger.debug("Raw service output: %s", raw)
