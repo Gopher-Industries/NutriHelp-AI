@@ -4,6 +4,7 @@ import logging
 import json
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+load_dotenv()
 
 try:
     import chromadb
