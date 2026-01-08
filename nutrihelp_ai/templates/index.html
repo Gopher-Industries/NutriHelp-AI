@@ -1,0 +1,1018 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NutriHelp - Jenny AI Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        font-family: system-ui, Segoe UI, sans-serif;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        height: 90vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ---------- HEADER ---------- */
+
+      .header {
+        background: #22c55e;
+        padding: 16px 24px;
+        color: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        overflow: hidden;
+      }
+
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .header h1 {
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .header p {
+        font-size: 13px;
+        opacity: 0.9;
+      }
+
+      /* ---------- LAYOUT ---------- */
+
+      .content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
+
+      .sidebar {
+        width: 280px;
+        background: #f8fafc;
+        border-right: 1px solid #e2e8f0;
+        padding: 20px;
+        overflow-y: auto;
+        flex-shrink: 0;
+      }
+
+      .sidebar h3 {
+        font-size: 13px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+      }
+
+      .profile-item {
+        background: #fff;
+        padding: 14px 16px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .profile-item label {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: block;
+      }
+
+      .profile-item .value {
+        font-size: 15px;
+        color: #1e293b;
+        font-weight: 600;
+      }
+
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ---------- CHAT ---------- */
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .message {
+        display: flex;
+        max-width: 80%;
+        gap: 10px;
+        align-items: flex-end;
+        animation: fadeIn 0.4s;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.assistant {
+        align-self: flex-start;
+      }
+
+      .message.user {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+      }
+
+      .message-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .message-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .message-content {
+        padding: 12px 18px;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .message.user .message-content {
+        background: #22c55e;
+        color: #fff;
+      }
+
+      /* ---------- OPTIONS ---------- */
+
+      .options-container {
+        padding: 10px 20px;
+        background: #f8fafc;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .option-pill {
+        background: #fff;
+        border: 1px solid #22c55e;
+        color: #22c55e;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .option-pill:hover {
+        background: #22c55e;
+        color: #fff;
+        transform: translateY(-2px);
+      }
+
+      .option-pill i {
+        margin-right: 6px;
+      }
+
+      /* ---------- TIPS ---------- */
+
+      .tip-card {
+        background: #fff;
+        border-left: 5px solid #22c55e;
+        padding: 15px;
+        margin-top: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .tip-title {
+        font-weight: 700;
+        color: #22c55e;
+        text-transform: uppercase;
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .tip-list {
+        list-style: none;
+      }
+
+      .tip-list li {
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+
+      .tip-list li::before {
+        content: "•";
+        color: #22c55e;
+        margin-right: 8px;
+      }
+
+      /* ---------- INPUT ---------- */
+
+      .input-area {
+        padding: 16px 20px;
+        background: #fff;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .input-wrapper {
+        flex: 1;
+        position: relative;
+        background: #f8fafc;
+        border-radius: 30px;
+        padding: 4px;
+      }
+
+      .chat-input {
+        width: 100%;
+        padding: 14px 60px 14px 20px;
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        outline: none;
+      }
+
+      .img-upload {
+        position: absolute;
+        right: 52px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: #64748b;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        transition: all 0.3s;
+      }
+
+      .img-upload:hover {
+        background: rgba(100, 116, 139, 0.1);
+      }
+
+      .voice-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: #64748b;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        transition: all 0.3s;
+      }
+
+      .voice-btn:hover {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+      }
+
+      .voice-btn.listening {
+        color: #ef4444;
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: translateY(-50%) scale(1);
+        }
+        50% {
+          transform: translateY(-50%) scale(1.15);
+        }
+      }
+
+      .send-btn {
+        width: 52px;
+        height: 52px;
+        background: #22c55e;
+        border: none;
+        border-radius: 50%;
+        color: #fff;
+        cursor: pointer;
+        font-size: 20px;
+      }
+
+      .download-btn {
+        margin: 20px auto;
+        display: block;
+        padding: 14px 32px;
+        background: #22c55e;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* ---------- MOBILE ---------- */
+
+      @media (max-width: 768px) {
+        .sidebar {
+          display: none;
+        }
+        .container {
+          height: 100vh;
+          border-radius: 0;
+        }
+        .options-container {
+          overflow-x: auto;
+          flex-wrap: nowrap;
+        }
+        .option-pill {
+          flex-shrink: 0;
+        }
+      }
+      /* ---------- IMAGE ONLY MESSAGE FIX ---------- */
+
+      .message.image-only {
+        max-width: none;
+      }
+
+      .message.image-only .message-content {
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .message.image-only img.chat-image {
+        max-width: 260px;
+        width: 100%;
+        height: auto;
+        border-radius: 16px;
+        display: block;
+      }
+
+      .message.assistant.image-only {
+        align-self: flex-start;
+      }
+
+      .message.user.image-only {
+        align-self: flex-end;
+      }
+
+      @media (max-width: 768px) {
+        .message.image-only img.chat-image {
+          max-width: 200px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-left">
+          <div class="avatar">
+            <img
+              src="https://img.freepik.com/free-photo/bowl-healthy-salad-with-vegetables_23-2147853519.jpg?w=360"
+              alt="Jenny"
+            />
+          </div>
+          <div>
+            <h1>NutriHelp</h1>
+            <p>Jenny - Your AI Nutrition Assistant</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="sidebar">
+          <h3>YOUR PROFILE</h3>
+          <div class="profile-item">
+            <label>Goal</label>
+            <div class="value" id="p-goal">Not set</div>
+          </div>
+          <div class="profile-item">
+            <label>Activity</label>
+            <div class="value" id="p-sport">Not set</div>
+          </div>
+          <div class="profile-item">
+            <label>Level</label>
+            <div class="value" id="p-level">Not set</div>
+          </div>
+          <div class="profile-item">
+            <label>Diet</label>
+            <div class="value" id="p-diet">Not set</div>
+          </div>
+          <div class="profile-item">
+            <label>Condition</label>
+            <div class="value" id="p-condition">None</div>
+          </div>
+          <div class="profile-item">
+            <label>Allergies</label>
+            <div class="value" id="p-allergies">None</div>
+          </div>
+        </div>
+
+        <div class="main">
+          <div class="messages" id="messages"></div>
+
+          <div class="options-container" id="optionsContainer"></div>
+
+          <div class="input-area">
+            <div class="input-wrapper">
+              <button class="img-upload" id="imageBtn" type="button">
+                <i class="fas fa-image"></i>
+              </button>
+
+              <input
+                type="file"
+                id="img-upload"
+                accept="image/*"
+                multiple
+                style="position: absolute; left: -9999px"
+              />
+
+              <div
+                id="imagePreviews"
+                style="
+                  display: none;
+                  margin-top: 10px;
+                  display: flex;
+                  gap: 10px;
+                  flex-wrap: wrap;
+                "
+              ></div>
+
+              <input
+                type="text"
+                class="chat-input"
+                id="input"
+                placeholder="Type or wait — I'll listen after speaking..."
+              />
+              <button class="voice-btn" id="voiceBtn">
+                <i class="fas fa-microphone"></i>
+              </button>
+            </div>
+            <button class="send-btn" id="sendBtn">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // ============== GLOBAL STATE ==============
+      let recognition = null;
+      let isListening = false;
+      let autoListenTimeout = null;
+      let step = 0;
+      let freeChatMode = false;
+
+      const profile = {
+        goal: "",
+        sport: "",
+        level: "",
+        diet: "",
+        condition: "",
+        allergies: [],
+      };
+      window.selectedImageFiles = [];
+
+      const questions = [
+        "What is your main health goal? For example, lose weight, gain muscle, maintain health, or improve fitness.",
+        "What physical activity do you do regularly? For example, running, gym, yoga, swimming, walking, or none.",
+        "What is your fitness level? Beginner, intermediate, or advanced.",
+        "What is your dietary preference? Vegetarian, non-vegetarian, vegan, pescatarian, or other.",
+        "Do you have any medical conditions? For example, diabetes or hypertension. Say 'none' if you have none.",
+        "Do you have any food allergies? For example, peanuts, dairy, or gluten. Say 'none' if you have none.",
+      ];
+
+      const OPTIONS_DATA = [
+        [
+          {
+            label: "Lose Weight",
+            val: "Lose Weight",
+            icon: "fa-scale-unbalanced",
+          },
+          { label: "Gain Muscle", val: "Gain Muscle", icon: "fa-dumbbell" },
+          {
+            label: "Maintain Health",
+            val: "Maintain Health",
+            icon: "fa-heart-pulse",
+          },
+          {
+            label: "Improve Fitness",
+            val: "Improve Fitness",
+            icon: "fa-person-running",
+          },
+        ],
+        [
+          { label: "Gym / Weights", val: "Gym", icon: "fa-dumbbell" },
+          { label: "Running", val: "Running", icon: "fa-person-running" },
+          { label: "Yoga", val: "Yoga", icon: "fa-spa" },
+          { label: "Walking", val: "Walking", icon: "fa-person-walking" },
+          { label: "Swimming", val: "Swimming", icon: "fa-water" },
+          { label: "None / Sedentary", val: "None", icon: "fa-couch" },
+        ],
+        [
+          { label: "Beginner", val: "Beginner", icon: "fa-seedling" },
+          {
+            label: "Intermediate",
+            val: "Intermediate",
+            icon: "fa-layer-group",
+          },
+          { label: "Advanced", val: "Advanced", icon: "fa-medal" },
+        ],
+        [
+          { label: "Vegetarian", val: "Vegetarian", icon: "fa-leaf" },
+          {
+            label: "Non-Vegetarian",
+            val: "Non-Vegetarian",
+            icon: "fa-drumstick-bite",
+          },
+          { label: "Vegan", val: "Vegan", icon: "fa-carrot" },
+          { label: "Eggetarian", val: "Eggetarian", icon: "fa-egg" },
+          { label: "Pescatarian", val: "Pescatarian", icon: "fa-fish" },
+        ],
+        [
+          { label: "None", val: "None", icon: "fa-check" },
+          { label: "Diabetes", val: "Diabetes", icon: "fa-notes-medical" },
+          { label: "Thyroid", val: "Thyroid", icon: "fa-user-nurse" },
+          {
+            label: "Hypertension (BP)",
+            val: "Hypertension",
+            icon: "fa-heart-crack",
+          },
+          { label: "PCOS", val: "PCOS", icon: "fa-venus" },
+        ],
+        [
+          { label: "None", val: "None", icon: "fa-thumbs-up" },
+          { label: "Peanuts", val: "Peanuts", icon: "fa-ban" },
+          { label: "Dairy", val: "Dairy", icon: "fa-cheese" },
+          { label: "Gluten", val: "Gluten", icon: "fa-bread-slice" },
+          { label: "Soy", val: "Soy", icon: "fa-cubes" },
+        ],
+      ];
+
+      const SPORT_TIPS = {
+        Gym: [
+          "Pre-Workout: Eat simple carbs (banana/toast) 30 mins before lifting.",
+          "Post-Workout: Consuming protein within 45 mins maximizes muscle repair.",
+          "Hydration: Sip water between sets, don't chug.",
+        ],
+        Running: [
+          "Joint Health: Ensure good shoes to protect knees.",
+          "Fuel: For runs > 45 mins, carry electrolytes.",
+          "Recovery: Stretch calves and hamstrings immediately after running.",
+        ],
+        Yoga: [
+          "Timing: Practice on an empty stomach (2 hours after meal).",
+          "Breathing: Focus on deep pranayama to lower cortisol.",
+          "Consistency: 20 mins daily is better than 2 hours once a week.",
+        ],
+        General: [
+          "Sleep: Aim for 7-8 hours for optimal metabolism.",
+          "Water: Drink at least 3 liters daily.",
+          "Consistency: Stick to the plan for 21 days to form a habit.",
+        ],
+      };
+
+      // ============== SPEAK ==============
+      function speak(text) {
+        if ("speechSynthesis" in window) {
+          speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.95;
+          utterance.pitch = 1.1;
+          utterance.volume = 1;
+          const voices = speechSynthesis.getVoices();
+          const femaleVoice =
+            voices.find((v) =>
+              /female|woman|zira|samantha|karen/i.test(v.name)
+            ) || voices[0];
+          if (femaleVoice) utterance.voice = femaleVoice;
+          utterance.onend = () => {
+            if (!freeChatMode && step < 6) startAutoListening();
+          };
+          speechSynthesis.speak(utterance);
+        }
+      }
+
+      function startAutoListening() {
+        if (!recognition || freeChatMode || step >= 6) return;
+        recognition.start();
+        document.getElementById("voiceBtn").classList.add("listening");
+        isListening = true;
+        autoListenTimeout = setTimeout(() => {
+          if (isListening) recognition.stop();
+        }, 60000);
+      }
+
+      // ============== MESSAGES ==============
+      function addMessage(role, content) {
+        const messages = document.getElementById("messages");
+        const div = document.createElement("div");
+        div.className = `message ${role}`;
+        const avatar =
+          role === "assistant"
+            ? "https://img.freepik.com/free-photo/bowl-healthy-salad-with-vegetables_23-2147853519.jpg?w=360"
+            : "https://randomuser.me/api/portraits/men/85.jpg";
+        div.innerHTML = `
+      <div class="message-avatar"><img src="${avatar}" alt="${role}"></div>
+      <div class="message-content"><div class="message-text">${content.replace(
+        /\n/g,
+        "<br>"
+      )}</div></div>
+    `;
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+        if (role === "assistant")
+          speak(content.replace(/<[^>]*>/g, "").replace(/<br>/g, " "));
+      }
+
+      function updateSidebar() {
+        document.getElementById("p-goal").textContent =
+          profile.goal || "Not set";
+        document.getElementById("p-sport").textContent =
+          profile.sport || "Not set";
+        document.getElementById("p-level").textContent =
+          profile.level || "Not set";
+        document.getElementById("p-diet").textContent =
+          profile.diet || "Not set";
+        document.getElementById("p-condition").textContent =
+          profile.condition || "None";
+        document.getElementById("p-allergies").textContent = profile.allergies
+          .length
+          ? profile.allergies.join(", ")
+          : "None";
+      }
+
+      function renderOptions(idx) {
+        const container = document.getElementById("optionsContainer");
+        container.innerHTML = "";
+        if (idx >= OPTIONS_DATA.length) {
+          container.style.display = "none";
+          return;
+        }
+        container.style.display = "flex";
+        OPTIONS_DATA[idx].forEach((opt) => {
+          const btn = document.createElement("button");
+          btn.className = "option-pill";
+          btn.innerHTML = `<i class="fas ${opt.icon}"></i> ${opt.label}`;
+          btn.onclick = () => {
+            document.getElementById("input").value = opt.val;
+            sendAnswer();
+          };
+          container.appendChild(btn);
+        });
+      }
+
+      // ============== MEAL PLAN (connect to your backend) ==============
+      async function generateMealPlan() {
+        document.getElementById("optionsContainer").style.display = "none";
+        addMessage(
+          "assistant",
+          "Perfect! Your profile is complete. Generating your personalized 7-day meal plan now..."
+        );
+
+        const formData = new FormData();
+        formData.append("goal", profile.goal);
+        formData.append("sport", profile.sport);
+        formData.append("level", profile.level);
+        formData.append("diet", profile.diet);
+        formData.append("condition", profile.condition);
+        formData.append("allergies", profile.allergies.join(", "));
+
+        try {
+          const res = await fetch("/generate-plan", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+
+          updateSidebar();
+          let tips = SPORT_TIPS.General;
+          const s = profile.sport.toLowerCase();
+          if (s.includes("gym") || s.includes("weight")) tips = SPORT_TIPS.Gym;
+          else if (s.includes("run")) tips = SPORT_TIPS.Running;
+          else if (s.includes("yoga")) tips = SPORT_TIPS.Yoga;
+
+          const tipHTML = `
+        <div class="tip-card"><span class="tip-title"><i class="fas fa-bolt"></i> Tips for ${
+          profile.sport
+        }</span><ul class="tip-list">${tips
+            .map((t) => `<li>${t}</li>`)
+            .join("")}</ul></div>
+        <div class="tip-card" style="border-left-color:#764ba2;margin-top:10px;">
+          <span class="tip-title" style="color:#764ba2"><i class="fas fa-carrot"></i> Lifestyle</span>
+          <ul class="tip-list">
+            <li><span style="color:#764ba2;font-weight:bold;margin-right:8px">•</span>Stick to plan for 21 days</li>
+            <li><span style="color:#764ba2;font-weight:bold;margin-right:8px">•</span>Sleep 7-8 hours</li>
+            <li><span style="color:#764ba2;font-weight:bold;margin-right:8px">•</span>Drink 3-4L water</li>
+          </ul>
+        </div>
+      `;
+
+          const planMsg = `<strong>🥗 Your Personalized 7-Day Meal Plan is Ready!</strong><br><br>${data.meal_plan.replace(
+            /\n/g,
+            "<br>"
+          )}<br>${tipHTML}<br>
+        <button class="download-btn" onclick="window.location.href='/download/${
+          data.filename
+        }'">📥 Download Your Meal Plan</button>`;
+
+          addMessage("assistant", planMsg);
+          setTimeout(
+            () =>
+              addMessage(
+                "assistant",
+                "Your meal plan is ready! Want to ask anything else? Just say 'yes'!"
+              ),
+            4000
+          );
+        } catch (err) {
+          addMessage("assistant", "Connection error. Please try again.");
+        }
+      }
+
+      // ============== PROCESS ANSWER ==============
+      function processAnswer(answer) {
+        if (!answer.trim()) return;
+        addMessage("user", answer);
+        const lower = answer.toLowerCase().trim();
+
+        if (step >= 6) {
+          if (["yes", "yeah", "sure", "ok"].some((w) => lower.includes(w))) {
+            freeChatMode = true;
+            addMessage(
+              "assistant",
+              "Great! Now you can ask me anything — recipes, calorie counts, supplements, workouts, or even upload food photos for instant analysis! 🍎"
+            );
+          } else if (["no", "bye", "thanks"].some((w) => lower.includes(w))) {
+            addMessage(
+              "assistant",
+              "You're welcome! Stay healthy and enjoy your plan! 😊🥗"
+            );
+          } else {
+            fetch("/ask", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ question: answer }),
+            })
+              .then((r) => r.json())
+              .then((d) => addMessage("assistant", d.answer || "Thinking..."))
+              .catch(() =>
+                addMessage("assistant", "Sorry, can't connect right now.")
+              );
+          }
+          return;
+        }
+
+        const keys = [
+          "goal",
+          "sport",
+          "level",
+          "diet",
+          "condition",
+          "allergies",
+        ];
+        let val = answer.trim();
+        if (step < 4) profile[keys[step]] = val;
+        else if (step === 4) profile.condition = lower === "none" ? "" : val;
+        else if (step === 5)
+          profile.allergies =
+            lower === "none"
+              ? []
+              : val
+                  .split(/[,and]+/)
+                  .map((a) => a.trim())
+                  .filter(Boolean);
+
+        updateSidebar();
+        step++;
+
+        if (step < 6) {
+          addMessage(
+            "assistant",
+            `<strong>Question ${step + 1}:</strong> ${questions[step]}`
+          );
+          renderOptions(step);
+        } else {
+          generateMealPlan();
+        }
+      }
+
+      // ============== IMAGE UPLOAD + ANALYSIS (FULLY WORKING) ==============
+      document.getElementById("imageBtn").onclick = () =>
+        document.getElementById("img-upload").click();
+
+      document.getElementById("img-upload").onchange = (e) => {
+        const files = Array.from(e.target.files);
+        window.selectedImageFiles = files;
+        const previews = document.getElementById("imagePreviews");
+        previews.innerHTML = "";
+        previews.style.display = files.length ? "flex" : "none";
+
+        files.forEach((file, i) => {
+          const wrap = document.createElement("div");
+          wrap.style = "position:relative;display:inline-block;margin:8px;";
+          const img = document.createElement("img");
+          img.src = URL.createObjectURL(file);
+          img.style =
+            "width:50px;height:50px;object-fit:cover;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);";
+          const x = document.createElement("button");
+          x.textContent = "×";
+          x.style =
+            "position:absolute;top:-10px;right:-10px;background:#ef4444;color:white;border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;";
+          x.onclick = () => {
+            wrap.remove();
+            window.selectedImageFiles = window.selectedImageFiles.filter(
+              (_, idx) => idx !== i
+            );
+            if (!window.selectedImageFiles.length)
+              previews.style.display = "none";
+          };
+          wrap.appendChild(img);
+          wrap.appendChild(x);
+          previews.appendChild(wrap);
+        });
+      };
+
+      async function sendAnswer() {
+        const input = document.getElementById("input");
+        const text = input.value.trim();
+        const hasImages = window.selectedImageFiles.length > 0;
+        let uploadedPaths = [];
+
+        // Upload images
+        if (hasImages) {
+          const fd = new FormData();
+          window.selectedImageFiles.forEach((f) => fd.append("images", f));
+          try {
+            const res = await fetch("/upload-image", {
+              method: "POST",
+              body: fd,
+            });
+            const data = await res.json();
+            uploadedPaths = data.filePaths || [];
+
+            uploadedPaths.forEach((p) => {
+              const bubble = document.createElement("div");
+              bubble.className = "message user";
+              bubble.innerHTML = `<div class="message-avatar"><img src="https://randomuser.me/api/portraits/men/85.jpg"></div>
+            <div class="message-content"><img src="${p}" style="max-width:50%;border-radius:5px;"></div>`;
+              document.getElementById("messages").appendChild(bubble);
+            });
+            document.getElementById("messages").scrollTop =
+              document.getElementById("messages").scrollHeight;
+          } catch {
+            addMessage("assistant", "Image upload failed.");
+            clearPreviews();
+            return;
+          }
+        }
+
+        // Analyze images
+        if (uploadedPaths.length > 0) {
+          addMessage("assistant", "Analyzing your food photo(s)... 🥗");
+          try {
+            const res = await fetch("/analyze-images", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image_paths: uploadedPaths }),
+            });
+            const data = await res.json();
+            addMessage("assistant", data.answer || "No food detected.");
+          } catch {
+            addMessage("assistant", "Analysis failed.");
+          }
+        }
+
+        // Process text
+        if (text) processAnswer(text);
+
+        // Cleanup
+        input.value = "";
+        clearPreviews();
+      }
+
+      function clearPreviews() {
+        const p = document.getElementById("imagePreviews");
+        p.innerHTML = "";
+        p.style.display = "none";
+        window.selectedImageFiles = [];
+        document.getElementById("img-upload").value = "";
+      }
+
+      // ============== VOICE + SEND ==============
+      if (
+        "SpeechRecognition" in window ||
+        "webkitSpeechRecognition" in window
+      ) {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SR();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+        recognition.onresult = (e) => {
+          const transcript = e.results[0][0].transcript;
+          document.getElementById("input").value = transcript;
+          sendAnswer();
+        };
+        recognition.onend = () => {
+          isListening = false;
+          document.getElementById("voiceBtn").classList.remove("listening");
+          if (autoListenTimeout) clearTimeout(autoListenTimeout);
+        };
+      }
+
+      document.getElementById("voiceBtn").onclick = () => {
+        if (!recognition) return alert("Voice not supported");
+        if (isListening) recognition.stop();
+        else {
+          recognition.start();
+          document.getElementById("voiceBtn").classList.add("listening");
+          isListening = true;
+        }
+      };
+
+      document.getElementById("sendBtn").onclick = sendAnswer;
+      document.getElementById("input").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendAnswer();
+        }
+      });
+
+      // ============== START ==============
+      window.onload = () => {
+        addMessage(
+          "assistant",
+          "Hi! I'm Jenny, your AI nutrition assistant. I'll ask you 6 quick questions to create your perfect meal plan. You can type, speak, or click the buttons below!"
+        );
+        renderOptions(0);
+      };
+    </script>
+  </body>
+</html>
