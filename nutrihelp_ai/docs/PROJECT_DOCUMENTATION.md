@@ -8,12 +8,13 @@
 ## Project Overview
 
 NutriHelp-AI is a personalized nutrition backend that:
+
 - Generates 3-day meal plans based on user health data
 - Supports dietary preferences (vegan, keto, etc.)
 - Avoids user allergies automatically
 - Considers health conditions (diabetes, hypertension, celiac, etc.)
 - Classifies food images with allergy warnings
-- Handles incomplete profiles intelligently (NA-101)
+- Handles incomplete profiles intelligently
 
 **Status:** Feature complete – Ready for production
 
@@ -32,14 +33,14 @@ NutriHelp-AI is a personalized nutrition backend that:
 - **Local Development:** `http://localhost:8000`
 - **Production:** `[Update after deployment]`
 
-**API Docs:**  
-- Swagger UI: `/docs`  
+**API Docs:**
+
+- Swagger UI: `/docs`
 - ReDoc: `/redoc`
 
 ## Key Endpoints
 
 ### 1. Generate Meal Plan from Profile (PRIMARY & RECOMMENDED)
-
 
 GET /ai/mealplan/from-profile/{user_id}
 
@@ -50,8 +51,8 @@ GET /ai/mealplan/from-profile/{user_id}
 
 GET /ai/mealplan/from-profile/user123abc
 
-
 **Success Response Includes:**
+
 - `success`: true
 - `message`: Personalized message
 - `meal_plan`: Array of 3 `DailyMealPlan` objects (breakfast, lunch, dinner, snacks)
@@ -59,25 +60,27 @@ GET /ai/mealplan/from-profile/user123abc
 - `recommendations`: List of tips (allergies avoided, health conditions considered)
 
 **Error Handling:**
+
 - 404 → User not found → Prompt login
 - Incomplete data → Use `recommendations` to guide user
 
 **Backend Flow:**
+
 1. Fetch from Supabase:
    - `users` → age, gender, weight (kg), height (cm)
    - `user_preferences` → activity_level, dietary_preference, etc.
    - `user_allergies` → allergy names
    - `user_health_conditions` → with joined `health_conditions` details
-2. Validate required fields (NA-101)
+2. Validate required fields
 3. Calculate BMR × activity multiplier
 4. Select meals from dietary templates
 5. **Skip unsafe meals** (nuts, dairy, gluten, shellfish keywords)
 6. Add health-specific recommendations
 
-### 2. Food Image Classifier v2 (Dummy)
-
+### 2. Food Image Classifier v2 using YOLO model
 
 **Success Response Includes:**
+
 - `success`: true
 - `message`: Personalized message
 - `meal_plan`: Array of 3 `DailyMealPlan` objects (breakfast, lunch, dinner, snacks)
@@ -85,16 +88,18 @@ GET /ai/mealplan/from-profile/user123abc
 - `recommendations`: List of tips (allergies avoided, health conditions considered)
 
 **Error Handling:**
+
 - 404 → User not found → Prompt login
 - Incomplete data → Use `recommendations` to guide user
 
 **Backend Flow:**
+
 1. Fetch from Supabase:
    - `users` → age, gender, weight (kg), height (cm)
    - `user_preferences` → activity_level, dietary_preference, etc.
    - `user_allergies` → allergy names
    - `user_health_conditions` → with joined `health_conditions` details
-2. Validate required fields (NA-101)
+2. Validate required fields
 3. Calculate BMR × activity multiplier
 4. Select meals from dietary templates
 5. **Skip unsafe meals** (nuts, dairy, gluten, shellfish keywords)
@@ -105,10 +110,12 @@ GET /ai/mealplan/from-profile/user123abc
 POST /ai-model/classifier/v2
 
 **Form Data:**
+
 - `image`: Food photo (JPG/PNG file)
 - `allergies`: Optional comma-separated string (e.g., "nuts,dairy")
 
 **Response:**
+
 - Top prediction + top-3
 - Allergy warning if predicted food contains user's allergen
 
@@ -132,8 +139,6 @@ Generate recommendations
 ↓
 Return full JSON response
 
-
-
 ## Frontend Integration Tips
 
 - Show `recommendations` as banners/tips
@@ -147,20 +152,21 @@ Return full JSON response
 1. Clone repository
 2. Create `dbconnection.py` file:
 
-
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 
 3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
+
 4. Run server:
+
 ```bash
 Run server:Bashuvicorn main:app --reload
 Open API docs: http://localhost:8000/docs
 ```
-
 
 Database Schema (Supabase Tables)
 
@@ -195,20 +201,19 @@ SUPABASE_ANON_KEY
 Health Check: Visit /docs or add simple /health endpoint if needed
 Project Structure
 textnutrihelp_ai/
-├── main.py                     # FastAPI app + routers
+├── main.py # FastAPI app + routers
 ├── routers/
-│   ├── classifier_v2.py        # Food classifier
-│   └── mealplan_api.py         # Meal plan endpoints
+│ ├── classifier_v2.py # Food classifier
+│ └── mealplan_api.py # Meal plan endpoints
 ├── model/
-│   ├── dbConnection.py         # Supabase client
-│   ├── fetchUserProfile.py
-│   ├── fetchUserPreferences.py
-│   ├── fetchUserAllergies.py
-│   ├── fetchAllHealthConditions.py
-│   └── fetchUserHealthConditions.py
+│ ├── dbConnection.py # Supabase client
+│ ├── fetchUserProfile.py
+│ ├── fetchUserPreferences.py
+│ ├── fetchUserAllergies.py
+│ ├── fetchAllHealthConditions.py
+│ └── fetchUserHealthConditions.py
 ├── docs/
-│   └── AI_INTEGRATION_RUNBOOK.md
+│ └── AI_INTEGRATION_RUNBOOK.md
 ├── requirements.txt
 ├── .env.example
-└── PROJECT_DOCUMENTATION.md    # ← This file
-
+└── PROJECT_DOCUMENTATION.md # ← This file

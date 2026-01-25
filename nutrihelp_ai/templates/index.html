@@ -1,5 +1,4 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -19,7 +18,10 @@
       html,
       body {
         height: 100%;
-        font-family: system-ui, Segoe UI, sans-serif;
+        font-family:
+          system-ui,
+          Segoe UI,
+          sans-serif;
         background: linear-gradient(135deg, #667eea, #764ba2);
       }
 
@@ -648,7 +650,7 @@
           const voices = speechSynthesis.getVoices();
           const femaleVoice =
             voices.find((v) =>
-              /female|woman|zira|samantha|karen/i.test(v.name)
+              /female|woman|zira|samantha|karen/i.test(v.name),
             ) || voices[0];
           if (femaleVoice) utterance.voice = femaleVoice;
           utterance.onend = () => {
@@ -681,7 +683,7 @@
       <div class="message-avatar"><img src="${avatar}" alt="${role}"></div>
       <div class="message-content"><div class="message-text">${content.replace(
         /\n/g,
-        "<br>"
+        "<br>",
       )}</div></div>
     `;
         messages.appendChild(div);
@@ -732,7 +734,7 @@
         document.getElementById("optionsContainer").style.display = "none";
         addMessage(
           "assistant",
-          "Perfect! Your profile is complete. Generating your personalized 7-day meal plan now..."
+          "Perfect! Your profile is complete. Generating your personalized 7-day meal plan now...",
         );
 
         const formData = new FormData();
@@ -762,8 +764,8 @@
         <div class="tip-card"><span class="tip-title"><i class="fas fa-bolt"></i> Tips for ${
           profile.sport
         }</span><ul class="tip-list">${tips
-            .map((t) => `<li>${t}</li>`)
-            .join("")}</ul></div>
+          .map((t) => `<li>${t}</li>`)
+          .join("")}</ul></div>
         <div class="tip-card" style="border-left-color:#764ba2;margin-top:10px;">
           <span class="tip-title" style="color:#764ba2"><i class="fas fa-carrot"></i> Lifestyle</span>
           <ul class="tip-list">
@@ -776,7 +778,7 @@
 
           const planMsg = `<strong>🥗 Your Personalized 7-Day Meal Plan is Ready!</strong><br><br>${data.meal_plan.replace(
             /\n/g,
-            "<br>"
+            "<br>",
           )}<br>${tipHTML}<br>
         <button class="download-btn" onclick="window.location.href='/download/${
           data.filename
@@ -787,9 +789,9 @@
             () =>
               addMessage(
                 "assistant",
-                "Your meal plan is ready! Want to ask anything else? Just say 'yes'!"
+                "Your meal plan is ready! Want to ask anything else? Just say 'yes'!",
               ),
-            4000
+            4000,
           );
         } catch (err) {
           addMessage("assistant", "Connection error. Please try again.");
@@ -807,12 +809,12 @@
             freeChatMode = true;
             addMessage(
               "assistant",
-              "Great! Now you can ask me anything — recipes, calorie counts, supplements, workouts, or even upload food photos for instant analysis! 🍎"
+              "Great! Now you can ask me anything — recipes, calorie counts, supplements, workouts, or even upload food photos for instant analysis! 🍎",
             );
           } else if (["no", "bye", "thanks"].some((w) => lower.includes(w))) {
             addMessage(
               "assistant",
-              "You're welcome! Stay healthy and enjoy your plan! 😊🥗"
+              "You're welcome! Stay healthy and enjoy your plan! 😊🥗",
             );
           } else {
             fetch("/ask", {
@@ -823,7 +825,7 @@
               .then((r) => r.json())
               .then((d) => addMessage("assistant", d.answer || "Thinking..."))
               .catch(() =>
-                addMessage("assistant", "Sorry, can't connect right now.")
+                addMessage("assistant", "Sorry, can't connect right now."),
               );
           }
           return;
@@ -855,7 +857,7 @@
         if (step < 6) {
           addMessage(
             "assistant",
-            `<strong>Question ${step + 1}:</strong> ${questions[step]}`
+            `<strong>Question ${step + 1}:</strong> ${questions[step]}`,
           );
           renderOptions(step);
         } else {
@@ -888,7 +890,7 @@
           x.onclick = () => {
             wrap.remove();
             window.selectedImageFiles = window.selectedImageFiles.filter(
-              (_, idx) => idx !== i
+              (_, idx) => idx !== i,
             );
             if (!window.selectedImageFiles.length)
               previews.style.display = "none";
@@ -1009,7 +1011,7 @@
       window.onload = () => {
         addMessage(
           "assistant",
-          "Hi! I'm Jenny, your AI nutrition assistant. I'll ask you 6 quick questions to create your perfect meal plan. You can type, speak, or click the buttons below!"
+          "Hi! I'm Jenny, your AI nutrition assistant. I'll ask you 6 quick questions to create your perfect meal plan. You can type, speak, or click the buttons below!",
         );
         renderOptions(0);
       };

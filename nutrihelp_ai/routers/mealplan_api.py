@@ -80,7 +80,7 @@
 #     recommendations: Optional[List[str]] = None
 
 # # ============================
-# # Data Validator (NA-101)
+# # Data Validator 
 # # ============================
 
 
@@ -516,7 +516,7 @@
 #     return meal_plans
 
 # # ============================
-# # GET /ai/mealplan Endpoint (NA-101)
+# # GET /ai/mealplan Endpoint 
 # # ============================
 
 
@@ -527,7 +527,7 @@
 #     description="""
 #     Generate a 3-day personalized meal plan based on user preferences and health data.
     
-#     **NA-101: Handles missing data cases:**
+#     **Handles missing data cases:**
 #     - Required fields: user_id, age, gender, weight, height
 #     - Optional fields use smart defaults if not provided
 #     - Returns data quality information and warnings
@@ -556,7 +556,7 @@
 #         None, ge=2, le=6, description="Number of meals per day")
 # ):
 #     """
-#     Generate personalized meal plan with error handling for missing data (NA-101)
+#     Generate personalized meal plan with error handling for missing data 
 #     """
 
 #     try:
@@ -574,7 +574,7 @@
 #             "meals_per_day": meals_per_day
 #         }
 
-#         # NA-101: Validate and handle missing data
+#         # Validate and handle missing data
 #         is_valid, enriched_params, data_quality = MealPlanValidator.validate_and_enrich(
 #             params)
 
@@ -736,7 +736,7 @@ class MealPlanResponse(BaseModel):
     recommendations: Optional[List[str]] = None
 
 # ============================
-# Data Validator (NA-101)
+# Data Validator 
 # ============================
 
 class MealPlanValidator:
@@ -1086,7 +1086,7 @@ def generate_dummy_meal_plan(params: Dict) -> List[DailyMealPlan]:
     description="""
     Generate a 3-day personalized meal plan based on user preferences and health data.
     
-    **NA-101: Handles missing data cases:**
+    **Handles missing data cases:**
     - Required fields: user_id, age, gender, weight, height
     - Optional fields use smart defaults if not provided
     - Returns data quality information and warnings
@@ -1115,7 +1115,7 @@ async def get_meal_plan(
         None, ge=2, le=6, description="Number of meals per day")
 ):
     """
-    Generate personalized meal plan with error handling for missing data (NA-101)
+    Generate personalized meal plan with error handling for missing data
     """
 
     try:
@@ -1133,7 +1133,7 @@ async def get_meal_plan(
             "meals_per_day": meals_per_day
         }
 
-        # NA-101: Validate and handle missing data
+        # Validate and handle missing data
         is_valid, enriched_params, data_quality = MealPlanValidator.validate_and_enrich(
             params)
 
@@ -1191,7 +1191,7 @@ async def get_meal_plan(
 @router.get(
     "/from-profile/{user_id}",
     response_model=MealPlanResponse,
-    summary="Generate Meal Plan from Database Profile (NA-101)",
+    summary="Generate Meal Plan from Database Profile ",
     description="""
     **DATABASE VERSION** - Fetch user data from Supabase and generate meal plan.
     
@@ -1207,12 +1207,12 @@ async def get_meal_plan(
     - Heart disease: Low fat, omega-3 rich
     - Celiac: Gluten-free meals
     
-    **Handles missing data with smart defaults (NA-101)**
+    **Handles missing data with smart defaults**
     """
 )
 async def get_meal_plan_from_database(user_id: str):
     """
-    Generate meal plan using data from Supabase database (NA-101)
+    Generate meal plan using data from Supabase database 
     Now includes health condition adjustments!
     """
     
@@ -1267,7 +1267,7 @@ async def get_meal_plan_from_database(user_id: str):
             "health_conditions": condition_names  # NEW!
         }
         
-        # STEP 6: Validate and handle missing data (NA-101)
+        # STEP 6: Validate and handle missing data 
         is_valid, enriched_params, data_quality = MealPlanValidator.validate_and_enrich(params)
         
         if not is_valid:
