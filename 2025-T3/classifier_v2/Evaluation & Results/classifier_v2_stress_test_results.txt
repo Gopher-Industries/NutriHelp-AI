@@ -1,0 +1,35 @@
+
+=== BLUR ===
+bolognese pasta.jpg       -> noodles      | confidence: 0.12
+fried rice.jpg            -> soup         | confidence: 0.10
+grilled salmon.jpg        -> pasta        | confidence: 0.08
+ramen.jpg                 -> noodles      | confidence: 0.09
+salad.jpg                 -> noodles      | confidence: 0.11
+
+=== CLUTTERED_BACKGROUND ===
+busy dining table.jpg     -> noodles      | confidence: 0.10
+chinese restaurant.jpg    -> noodles      | confidence: 0.09
+crawfish boil.jpg         -> noodles      | confidence: 0.09
+ramen shop.png            -> noodles      | confidence: 0.12
+street food image.jpg     -> chicken      | confidence: 0.09
+
+=== LOW_LIGHT ===
+omelette.jpg              -> vegetables   | confidence: 0.10
+orange.jpg                -> vegetables   | confidence: 0.09
+roasted chicken.jpg       -> chicken      | confidence: 0.08
+sandwich.jpg              -> chicken      | confidence: 0.11
+steak.jpg                 -> snacks       | confidence: 0.09
+
+=== MULTI_FOOD ===
+combination platter.jpg   -> chicken      | confidence: 0.11
+fried platter.JPG         -> chicken      | confidence: 0.09
+fruit platter.png         -> chicken      | confidence: 0.09
+multi food.jpg            -> chicken      | confidence: 0.10
+seafood platter.png       -> chicken      | confidence: 0.13
+
+=== SIDE_ANGLE ===
+bok choy.png              -> vegetables   | confidence: 0.09
+burger.png                -> rice         | confidence: 0.08
+fried chicken.png         -> chicken      | confidence: 0.11
+soup.png                  -> soup         | confidence: 0.10
+spring rolls.png          -> noodles      | confidence: 0.08
