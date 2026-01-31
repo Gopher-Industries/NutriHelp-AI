@@ -1,23 +1,22 @@
+from slowapi.extension import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+import logging
+from nutrihelp_ai.extensions import limiter
+from nutrihelp_ai.routers import multi_image_api  # NEW: Multi-image router
+from nutrihelp_ai.routers import medical_report_api, chatbot_api, image_api, health_plan_api, finetune_api
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
+from nutrihelp_ai.routers import classifier_v2
+from nutrihelp_ai.routers import mealplan_api
 from dotenv import load_dotenv
 import os
 
 # Load .env file before anything else
 load_dotenv()
-from nutrihelp_ai.routers import mealplan_api
-from nutrihelp_ai.routers import classifier_v2
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from nutrihelp_ai.routers import medical_report_api, chatbot_api, image_api, health_plan_api, finetune_api
-from nutrihelp_ai.routers import multi_image_api  # NEW: Multi-image router
-from nutrihelp_ai.extensions import limiter
-
-import logging
-from slowapi.errors import RateLimitExceeded
-from slowapi.extension import _rate_limit_exceeded_handler
 
 # ---- Logging Setup ----
 logging.basicConfig(

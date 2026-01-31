@@ -6,7 +6,7 @@
 # Gemini API Configuration
 # ⚠️ EXPOSED! REVOKE IMMEDIATELY!
 # GEMINI_API_KEY = "AIzaSyA_kYa1kKVfpFYdIMcX9Idqq70lfYvCy7o"
-GEMINI_API_KEY = "AIzaSyBRFwdgWDN0QLbW1i3cfymseDNQx2YoXB4"
+GEMINI_API_KEY = "AIzaSyAaRYA2QUmt15X8JDXBD32_de2IQX49pu4"
 # Note: This model does not exist. Use "gemini-1.5-flash"
 GEMINI_MODEL = "gemini-2.5-flash"
 

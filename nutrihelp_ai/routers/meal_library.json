@@ -1,0 +1,129 @@
+[
+  {
+    "id": "a1",
+    "name": "Oats with berries and chia",
+    "meal_type": "breakfast",
+    "calories": 350,
+    "tags": ["low_sugar", "high_fibre", "vegetarian", "soft_food", "cost_low"]
+  },
+  {
+    "id": "a2",
+    "name": "Scrambled eggs on toast",
+    "meal_type": "breakfast",
+    "calories": 380,
+    "tags": ["high_protein", "contains_egg", "contains_gluten", "contains_wheat", "cost_low"]
+  },
+  {
+    "id": "a3",
+    "name": "Grilled chicken salad",
+    "meal_type": "lunch",
+    "calories": 450,
+    "tags": ["low_fat", "low_salt", "high_protein", "cost_medium"]
+  },
+  {
+    "id": "a4",
+    "name": "Vegetable stir-fry with tofu and rice",
+    "meal_type": "lunch",
+    "calories": 500,
+    "tags": ["soft_food", "low_fat", "low_salt", "asian", "contains_soy", "vegetarian", "cost_low"]
+  },
+  {
+    "id": "a5",
+    "name": "Baked salmon with steamed veggies",
+    "meal_type": "dinner",
+    "calories": 520,
+    "tags": ["low_sugar", "high_protein", "low_salt", "contains_fish", "cost_high"]
+  },
+  {
+    "id": "a6",
+    "name": "Lentil soup with soft bread",
+    "meal_type": "dinner",
+    "calories": 480,
+    "tags": ["vegetarian", "soft_food", "low_fat", "low_salt", "contains_gluten", "contains_wheat", "cost_low"]
+  },
+  {
+    "id": "a7",
+    "name": "Apple slices with yoghurt",
+    "meal_type": "snack",
+    "calories": 150,
+    "tags": ["low_fat", "contains_yoghurt", "contains_dairy", "contains_apple", "cost_low"]
+  },
+  {
+    "id": "a8",
+    "name": "Unsalted mixed nuts",
+    "meal_type": "snack",
+    "calories": 200,
+    "tags": ["contains_nuts",  "contains_tree_nut", "low_sugar", "cost_medium"]
+  },
+  {
+    "id": "a9",
+    "name": "Sugary cereal with milk",
+    "meal_type": "breakfast",
+    "calories": 420,
+    "tags": ["high_sugar", "high_gi", "refined_carb", "contains_dairy", "contains_milk", "contains_gluten", "contains_wheat", "cost_low"]
+  },
+  {
+    "id": "a10",
+    "name": "Wholegrain toast with avocado",
+    "meal_type": "breakfast",
+    "calories": 360,
+    "tags": ["low_sugar", "high_fibre", "low_salt", "vegetarian", "contains_gluten", "contains_wheat", "cost_medium"]
+  },
+  {
+    "id": "a11",
+    "name": "Chicken burger and fries",
+    "meal_type": "lunch",
+    "calories": 800,
+    "tags": ["high_fat", "high_saturated_fat", "fried", "processed_meat", "high_salt", "contains_gluten", "contains_wheat", "cost_medium"]
+  },
+  {
+    "id": "a12",
+    "name": "Brown rice with grilled fish and veggies",
+    "meal_type": "lunch",
+    "calories": 520,
+    "tags": ["low_sugar", "low_gi", "low_fat", "low_salt", "high_protein", "contains_fish", "cost_high"]
+  },
+  {
+    "id": "a13",
+    "name": "Instant noodles with seasoning packet",
+    "meal_type": "lunch",
+    "calories": 550,
+    "tags": ["high_salt", "very_high_salt", "refined_carb", "contains_gluten", "contains_wheat", "cost_low"]
+  },
+  {
+    "id": "a14",
+    "name": "Beef stir-fry with vegetables and soy sauce",
+    "meal_type": "dinner",
+    "calories": 650,
+    "tags": ["high_salt", "soy_sauce_heavy", "asian", "high_protein", "contains_soy", "cost_high"]
+  },
+  {
+    "id": "a15",
+    "name": "Cheese pizza slice",
+    "meal_type": "dinner",
+    "calories": 780,
+    "tags": ["high_fat", "high_saturated_fat", "contains_dairy", "contains_cheese", "contains_gluten", "contains_wheat", "cost_medium"]
+  },
+  {
+    "id": "a16",
+    "name": "Donut and soft drink",
+    "meal_type": "snack",
+    "calories": 600,
+    "tags": ["dessert", "high_sugar", "added_sugar", "refined_carb", "sugary_drink", "high_fat", "contains_gluten", "contains_wheat", "cost_low"]
+  },
+  {
+    "id": "a17",
+    "name": "Fresh fruit salad",
+    "meal_type": "snack",
+    "calories": 180,
+    "tags": ["low_sugar", "low_fat", "low_salt", "vegetarian", "cost_low",
+         "contains_fruit", "contains_apple", "contains_strawberry", "contains_kiwi"]
+  },
+  {
+    "id": "a18",
+    "name": "Low-fat yoghurt with nuts",
+    "meal_type": "snack",
+    "calories": 220,
+    "tags": ["low_fat", "contains_yoghurt", "contains_dairy", "contains_nuts", "contains_tree_nut", "cost_medium"]
+  }
+]

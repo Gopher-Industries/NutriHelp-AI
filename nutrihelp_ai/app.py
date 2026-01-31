@@ -1,10 +1,9 @@
 import json
-import cv2
-import dlib
+
 import os
 import uuid
 import numpy as np
-from imutils import face_utils
+# from imutils import face_utils
 from scipy.spatial import distance as dist
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -136,16 +135,61 @@ async def ask_nutrition_question(request: Request):
 
 @app.post("/generate-plan")
 async def generate_plan(
-    goal: str = Form(...), sport: str = Form(...), level: str = Form(...),
-    diet: str = Form(...), condition: str = Form(""), allergies: str = Form("")
+    goal: str = Form(...),
+    sport: str = Form(...),
+    level: str = Form(...),
+    diet: str = Form(...),
+    condition: str = Form("None"),
+    allergies: str = Form("None")
 ):
+    from ai_reasoning import generate_meal_plan
 
-    meal_plan_text = "Day 1:\nBreakfast: Oatmeal with fruits\nLunch: Grilled chicken salad\nDinner: Baked salmon with veggies\n..."
+    # Clean and parse allergies properly
+    allergy_list = []
+    if allergies and allergies.strip() and allergies.lower() not in ['none', 'no', 'nothing']:
+        # Split by comma and clean each item
+        allergy_list = [a.strip() for a in allergies.split(",")
+                        if a.strip() and len(a.strip()) > 1]
+
+    # If no valid allergies, set to None
+    if not allergy_list:
+        allergy_list = ["None"]
+
+    # Clean condition
+    clean_condition = condition.strip() if condition and condition.strip() else "None"
+
+    user_profile = {
+        "goal": goal,
+        "sport": sport,
+        "level": level,
+        "diet": diet,
+        "condition": clean_condition,
+        "allergies": allergy_list
+    }
+
+    # Generate meal plan
+    meal_plan_text = generate_meal_plan(
+        user_profile, data_loader=None, start_day=1)
+
+    # Save to file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"meal_plan_{timestamp}_{uuid.uuid4().hex[:8]}.txt"
+
+    # Ensure directory exists
+    os.makedirs("meal_plans", exist_ok=True)
     filepath = os.path.join("meal_plans", filename)
+
     with open(filepath, "w", encoding="utf-8") as f:
-        f.write("Sample Meal Plan\n" + meal_plan_text)
+        f.write("=== YOUR PERSONALIZED MEAL PLAN ===\n\n")
+        f.write(f"Goal: {goal}\n")
+        f.write(f"Activity: {sport}\n")
+        f.write(f"Level: {level}\n")
+        f.write(f"Diet: {diet}\n")
+        f.write(f"Condition: {clean_condition}\n")
+        f.write(f"Allergies: {', '.join(allergy_list)}\n")
+        f.write("\n" + "="*50 + "\n\n")
+        f.write(meal_plan_text)
+
     return JSONResponse({
         "meal_plan": meal_plan_text,
         "filename": filename
@@ -158,180 +202,6 @@ async def download(filename: str):
     if not os.path.exists(filepath):
         return JSONResponse({"error": "File not found"}, status_code=404)
     return FileResponse(filepath, filename=f"NutriHelp_MealPlan_{datetime.now().strftime('%Y%m%d')}.txt")
-
-
-# detector = dlib.get_frontal_face_detector()
-# predictor = dlib.shape_predictor(PREDICTOR_PATH)
-# if os.path.exists(USERS_FILE):
-#     with open(USERS_FILE, "r") as f:
-#         users_db = json.load(f)
-# else:
-#     users_db = {}
-
-camera = None
-camera_active = False
-current_mode = None
-current_user = None
-blink_counter = 0
-total_blinks = 0
-auth_result = None
-
-
-def calculate_ear(eye):
-    A = dist.euclidean(eye[1], eye[5])
-    B = dist.euclidean(eye[2], eye[4])
-    C = dist.euclidean(eye[0], eye[3])
-    return (A + B) / (2.0 * C)
-
-
-# def generate_frames():
-#     global camera, camera_active, blink_counter, total_blinks, auth_result
-#     camera = cv2.VideoCapture(0)
-#     camera_active = True
-
-#     while camera_active:
-#         success, frame = camera.read()
-#         if not success:
-#             break
-
-#         frame = cv2.resize(frame, None, fx=0.75, fy=0.75)
-#         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-#         rects = detector(gray, 0)
-
-#         for rect in rects:
-#             shape = predictor(gray, rect)
-#             shape = face_utils.shape_to_np(shape)
-
-#             left_eye = shape[36:42]
-#             right_eye = shape[42:48]
-
-#             ear = (calculate_ear(left_eye) + calculate_ear(right_eye)) / 2.0
-
-#             if ear < EYE_AR_THRESH:
-#                 blink_counter += 1
-#             else:
-#                 if blink_counter >= EYE_AR_CONSEC_FRAMES:
-#                     total_blinks += 1
-#                 blink_counter = 0
-
-#             cv2.putText(frame, f"Blinks: {total_blinks}/{REQUIRED_BLINKS}",
-#                         (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-
-#             if total_blinks >= REQUIRED_BLINKS and auth_result is None:
-#                 face_locations = [
-#                     (rect.top(), rect.right(), rect.bottom(), rect.left())]
-#                 encodings = face_recognition.face_encodings(
-#                     rgb, face_locations)
-
-#                 if encodings:
-#                     encoding = encodings[0]
-
-#                     if current_mode == "register":
-#                         users_db[current_user] = {
-#                             "encoding": encoding.tolist()}
-#                         with open(USERS_FILE, "w") as f:
-#                             json.dump(users_db, f, indent=2)
-#                         auth_result = {
-#                             "status": "success",
-#                             "message": f"Registered as {current_user}",
-#                             "redirect": True
-#                         }
-
-#                     elif current_mode == "login":
-
-#                         if users_db:
-#                             known_encodings = [
-#                                 np.array(user["encoding"]) for user in users_db.values()]
-#                             known_names = list(users_db.keys())
-
-#                             distances = face_recognition.face_distance(
-#                                 known_encodings, encoding)
-#                             best_match_idx = np.argmin(distances)
-
-#                             if distances[best_match_idx] < 0.6:
-#                                 matched_name = known_names[best_match_idx]
-#                                 auth_result = {
-#                                     "status": "success",
-#                                     "message": f"Welcome back {matched_name}!",
-#                                     "redirect": True
-#                                 }
-#                             else:
-#                                 auth_result = {
-#                                     "status": "failed",
-#                                     "message": "Face not recognized"
-#                                 }
-#                         else:
-#                             auth_result = {
-#                                 "status": "failed",
-#                                 "message": "No registered users found"
-#                             }
-
-#                     camera_active = False
-
-#             cv2.putText(frame, "Blink Twice to Authenticate",
-#                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-
-#         ret, buffer = cv2.imencode(".jpg", frame)
-#         frame_bytes = buffer.tobytes()
-
-#         yield (b"--frame\r\n"
-#                b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
-
-#     if camera is not None:
-#         camera.release()
-#         camera = None
-
-
-# @app.get("/", response_class=HTMLResponse)
-# def index(request: Request):
-#     return templates.TemplateResponse("login.html", {"request": request})
-
-
-# @app.get("/video")
-# def video():
-#     if not camera_active:
-#         return JSONResponse({"error": "Camera not active"}, status_code=400)
-
-#     return StreamingResponse(
-#         generate_frames(),
-#         media_type="multipart/x-mixed-replace; boundary=frame"
-#     )
-
-
-# @app.post("/register")
-# def register(username: str):
-#     global current_mode, current_user, total_blinks, auth_result, camera_active
-#     if username in users_db:
-#         return JSONResponse({"error": "User already exists"}, status_code=400)
-
-#     current_mode = "register"
-#     current_user = username
-#     total_blinks = 0
-#     auth_result = None
-#     camera_active = True
-#     return {"status": "Camera started for registration"}
-
-
-# @app.post("/login")
-# def login():
-#     global current_mode, total_blinks, auth_result, camera_active
-#     current_mode = "login"
-#     total_blinks = 0
-#     auth_result = None
-#     camera_active = True
-#     return {"status": "Camera started for login"}
-
-
-# @app.get("/result")
-# def result():
-#     global auth_result
-#     if auth_result:
-#         print(auth_result, "<<<<<<<<<<<<")
-#         return JSONResponse({"result": auth_result})
-#     return JSONResponse({"result": None})
-
 
 if __name__ == "__main__":
     import uvicorn
