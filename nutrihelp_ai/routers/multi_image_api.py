@@ -63,3 +63,4 @@ async def multi_image_analysis(
         logger.error(
             f"Multi-image analysis endpoint failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
