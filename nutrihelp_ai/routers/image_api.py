@@ -1,10 +1,11 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from nutrihelp_ai.services.image_pipeline import ImagePipelineService
-from nutrihelp_ai.services.nutribot import AgentClass
+from nutrihelp_ai.services.active_ai_backend import GroqChromaBackend
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+agent = GroqChromaBackend()
 
 @router.post("/image-analysis")
 async def full_image_analysis(file: UploadFile = File(...)):
@@ -16,10 +17,7 @@ async def full_image_analysis(file: UploadFile = File(...)):
         pipeline = ImagePipelineService()
         food_type, _, confidence = await pipeline.process_image(file)
 
-        # Step 2: Initialize the agent
-        agent = AgentClass()
-
-        # Step 3: Get nutrition data from the agent
+        # Step 2: Get nutrition data from the active AI backend
         nutrition_data = agent.run_agent_dynamic(food_type)
 
         # Step 4: Ensure keys exist to avoid KeyError

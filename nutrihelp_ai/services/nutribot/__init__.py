@@ -1,4 +1,5 @@
-# __init__.py for nutribot service
+"""Legacy compatibility exports for the active Groq + Chroma backend."""
+
 from .Agents import AgentClass
 # from .Emotion import EmotionClass
 # from .Memory import MemoryClass

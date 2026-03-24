@@ -1,12 +1,11 @@
-# chatbot_api.py
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
-from nutrihelp_ai.services.nutribot.Agents import AgentClass
+from nutrihelp_ai.services.active_ai_backend import GroqChromaBackend
 
 import uuid
 
 router = APIRouter()
-agent = AgentClass()
+agent = GroqChromaBackend()
 
 class UserInput(BaseModel):
     Input: str
