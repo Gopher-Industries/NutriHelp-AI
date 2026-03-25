@@ -1,246 +1,146 @@
-# 🧠 NutriHelp-AI
+# NutriHelp-AI
 
-This repository contains the AI service for the NutriHelp project. It exposes machine learning model predictions through a FastAPI server, allowing other services (e.g., Backend) to send data and receive results.
+FastAPI service for the NutriHelp project.
 
----
+The active AI chatbot runtime in this repository is `Groq + Chroma`. Older Hugging Face, OpenAI, Redis, and Qdrant references still exist in legacy modules, but they are not the default runtime path.
 
-## 🚀 Getting Started
+## Active Backend Path
 
-Follow the steps below to clone and run the AI model server locally.
+The current active backend path is:
 
-### 1. 📥 Clone the Repository
+- `run.py`
+- `nutrihelp_ai/main.py`
+- `nutrihelp_ai/services/active_ai_backend.py`
+
+Runtime usage:
+
+- Chatbot routes use `GroqChromaBackend`
+- Health-plan routes use `HealthPlanService`
+- Image nutrition enrichment uses `GroqChromaBackend`
+
+Legacy compatibility modules:
+
+- `nutrihelp_ai/services/nutribot/`
+- `nutrihelp_ai/services/nutribot_rag.py`
+- `nutrihelp_ai/agents/agent_hf.py`
+
+These legacy modules are compatibility shims or older implementations. New backend changes should target `nutrihelp_ai/services/active_ai_backend.py`.
+
+## Setup
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/Gopher-Industries/NutriHelp-AI.git
 cd NutriHelp-AI
 ```
 
----
+### 2. Create a virtual environment
 
-### 2. 🐍 (Optional) Create a Virtual Environment
-
-#### Windows
+macOS / Linux:
 
 ```bash
-python -m venv venv
-venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-If you see a PowerShell error, try this instead:
+Windows:
 
 ```bash
-venv\Scripts\activate.bat
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
-#### macOS / Linux
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
----
-
-### 3. 📦 Install Dependencies
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
+### 4. Configure environment variables
 
-### 4. 🧪 Run the AI Server
+Create `.env` from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Required for the active Groq + Chroma backend:
+
+```env
+GROQ_API_KEY=
+CHROMA_MODE=cloud
+CHROMA_API_KEY=
+CHROMA_TENANT=
+CHROMA_DATABASE=
+RAG_COLLECTION=aus_food_nutrition
+```
+
+Optional:
+
+```env
+GROQ_MODEL=llama-3.1-8b-instant
+CHROMA_PATH=./.chroma
+PORT=8000
+```
+
+Notes:
+
+- Use `CHROMA_MODE=cloud` for Chroma Cloud.
+- Use `CHROMA_MODE=local` with `CHROMA_PATH` for a local persistent Chroma store.
+- `RAG_COLLECTION` should match the collection that contains the nutrition documents used for retrieval.
+
+### 5. Run the API
 
 ```bash
 python run.py
 ```
 
-By default, the FastAPI server will run at:
+Local URLs:
 
-```
-http://127.0.0.1:8000
-```
+- API root: `http://127.0.0.1:8000/`
+- Health check: `http://127.0.0.1:8000/healthz`
+- Swagger docs: `http://127.0.0.1:8000/docs`
 
-You can access the Swagger UI documentation at:
+## Main Endpoints
 
-```
-http://127.0.0.1:8000/docs
-```
+- `POST /ai-model/chatbot/chat`
+- `POST /ai-model/chatbot/chat_with_rag`
+- `POST /ai-model/medical-report/retrieve`
+- `POST /ai-model/medical-report/plan/generate`
+- `POST /ai-model/image-analysis/image-analysis`
+- `POST /ai-model/image-analysis/multi-image-analysis`
+- `GET /ai-model/chatbot-finetune/healthz`
+- `POST /ai-model/chatbot-finetune/chat`
 
-If you want to run on different port, go to run.py file and change the port to different one.
+## Environment Variables
 
----
+### Active chatbot runtime
 
-## 📬 API Endpoint Example
+- `GROQ_API_KEY`: required for Groq chat completions
+- `GROQ_MODEL`: optional default model name
+- `CHROMA_MODE`: `cloud` or `local`
+- `CHROMA_API_KEY`: required when `CHROMA_MODE=cloud`
+- `CHROMA_TENANT`: required when `CHROMA_MODE=cloud`
+- `CHROMA_DATABASE`: required when `CHROMA_MODE=cloud`
+- `CHROMA_PATH`: used when `CHROMA_MODE=local`
+- `RAG_COLLECTION`: Chroma collection used by chat and health-plan retrieval
+- `PORT`: optional API port override
 
-### `POST /ai-model/obesity/predict`
+### Other env vars used elsewhere in the repo
 
-Accepts JSON-formatted input and returns a prediction result.
+These are not part of the active Groq + Chroma chatbot runtime:
 
-#### 🔄 Example Request Payload:
+- `JWT_TOKEN`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `GMAIL_USER`
+- `GMAIL_APP_PASSWORD`
+- `HF_SPACE_URL`
+- `HF_SPACE_KEY`
 
-```json
-{
-  "Gender": "Male",
-  "family_history_with_overweight": "yes",
-  "Age": 25,
-  "Height": 1.75,
-  "Weight": 85,
-}
-```
+## Maintenance Notes
 
----
-
-# 📡 How the Backend Team Can Use the NutriHelp AI API
-
-Once the AI server is running (locally or on a deployed environment), the Backend team can send requests to it over HTTP.
-
----
-
-## 🔗 Endpoint Information
-
-| Method | Endpoint                            | Description                  |
-|--------|-------------------------------------|------------------------------|
-| POST   | `/ai-model/obesity/predict`         | Get obesity prediction       |
-| POST   | `/ai-model/chatbot/query`           | Get response from AI         |
----
-
-## 📤 Example Request
-
-### 🔧 URL (Local Testing)
-```
-http://localhost:8000/ai-model/obesity/predict
-```
-
-### 🧾 Headers
-```http
-Content-Type: application/json
-```
-
-### 📦 JSON Body
-```json
-{
-  "Gender": "Male",
-  "Age": 25,
-  "Height": 1.75,
-  "Weight": 85,
-}
-```
-
-### ✅ Example Successful Response
-```json
-{
-  "obesity_level": "Overweight"
-}
-```
-
----
-
-## 🧪 How to Test 
-
-### ✅ Example: Send Obesity Prediction Request
-
-```js
-const data = {
-  "Gender": "Male",
-  "Age": 25,
-  "Height": 1.75,
-  "Weight": 65,
-  "family_history_with_overweight": "yes",
-  "FAVC": "yes",
-  "FCVC": 2.5,
-  "NCP": 3,
-  "CAEC": "Sometimes",
-  "SMOKE": "no",
-  "CH2O": 2.5,
-  "SCC": "no",
-  "FAF": 0.5,
-  "TUE": 1,
-  "CALC": "Sometimes",
-  "MTRANS": "Public_Transportation"
-};
-
-fetch("http://localhost:8000/predict", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(data)
-})
-.then(response => response.json())
-.then(result => console.log("Prediction:", result))
-.catch(error => console.error("Error:", error));
-
-```
-
----
-
-
-# NutriBot AI Setup Guide
-
-NutriBot is an LLM-powered AI assistant designed for nutritional advice, document ingestion, emotion-aware dialogue, and smart retrieval of local or online health information. This system is integrated with LangChain, OpenAI models, Redis memory, and optional external tools (SERP API and Nutrition API).
-
----
-
-## 🚀 Features
-
-- ✅ Emotion-aware chat using GPT-4o or GPT-3.5-Turbo via OpenAI API
-- ✅ Tool calling for nutrition lookup, document search (RAG), and web search
-- ✅ Long-term memory via Redis
-- ✅ PDF and webpage document ingestion with vector storage using Qdrant
-- ✅ WebSocket streaming and REST support
-
----
-
-## 🧩 Requirements
-
-- Python 3.10 or 3.11
-- Git
-- pip
-- Redis
-
----
-
-## 📦 Installation Steps
-
-🧠 Set Up Redis (Memory Storage)
-Windows
-Download Redis .msi from this link: https://github.com/tporadowski/redis/releases
-
-Install it.
-
-Add the Redis install folder to your system PATH. Example:
-
-C:\Program Files\Redis
-
-Run Redis server in terminal:
-
-```bash
-redis-server
-```
-macOS
-
-```bash
-brew install redis
-brew services start redis
-
-```
-Ubuntu/Debian
-```bash
-sudo apt update
-sudo apt install redis-server
-sudo service redis-server start
-```
-
-🔐 Configure Environment Variables
-Create a .env file in the root directory:
-Paste in the following, replacing with your actual keys:
-
-```
-OPENAI_API_KEY=your-openai-key
-OPENAI_API_BASE=https://api.openai.com/v1
-SERPAPI_API_KEY=your-serpapi-key
-NINJA_API_KEY=your-ninja-api-key
-
-```
-❗️ Never commit this file. It is listed in .gitignore. Ask person in charge for the actual file.
+- Keep chatbot backend changes inside `nutrihelp_ai/services/active_ai_backend.py`.
+- Treat `nutrihelp_ai/services/nutribot/` and `nutrihelp_ai/services/nutribot_rag.py` as legacy compatibility layers.
+- Do not add new setup guidance for OpenAI, Redis, or Qdrant unless those become active runtime dependencies again.

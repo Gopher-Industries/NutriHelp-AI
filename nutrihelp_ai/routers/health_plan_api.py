@@ -4,13 +4,13 @@ from pydantic import BaseModel, Field, confloat, conint, field_validator
 from typing import List, Literal, Optional, Any, Dict
 
 from nutrihelp_ai.extensions import limiter
-from nutrihelp_ai.services.nutribot_rag import NutriBotRAGService
+from nutrihelp_ai.services.active_ai_backend import HealthPlanService
 
 # ---------- Setup logger ----------
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-_service = NutriBotRAGService()
+_service = HealthPlanService()
 
 # ---------- Input Models ----------
 ObesityLevel = Literal[
