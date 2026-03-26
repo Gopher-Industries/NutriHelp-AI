@@ -200,9 +200,28 @@ class GroqChromaBackend:
             n_results=n_results,
             distance_threshold=distance_threshold,
         )
-        if contexts:
-            prompt = f"{prompt}\nUse this as context for answering: {contexts}"
-        return self.chat(prompt, model=model)
+        # AI04: Fallback when Chroma returns no useful context
+        if not contexts:
+            logger.warning("RAG fallback triggered - no relevant context found for: %s", prompt)
+            return (
+                "I'm sorry, I could not find relevant nutrition information for your question. "
+                "Please try asking about specific foods, nutrients, or dietary guidelines "
+                "for Australian seniors."
+            )
+
+        # AI04: Grounded prompt - forces model to use retrieved Chroma context
+        joined_context = "\n\n".join(contexts)
+        grounded_prompt = (
+            "You are NutriBot, a nutrition assistant for Australian seniors.\n"
+            "Use ONLY the context below to answer the question.\n"
+            "Do not use general knowledge outside the context.\n"
+            "If the context does not contain enough information, respond with: "
+            "'I don't have enough information on that topic in my knowledge base.'\n\n"
+            f"CONTEXT:\n{joined_context}\n\n"
+            f"QUESTION: {prompt}\n\n"
+            "ANSWER:"
+        )
+        return self.chat(grounded_prompt, model=model)
 
     def add_documents(self, docs: List[str]) -> int:
         collection = self._get_collection()
