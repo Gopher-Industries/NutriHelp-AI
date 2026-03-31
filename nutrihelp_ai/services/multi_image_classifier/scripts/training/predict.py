@@ -53,7 +53,8 @@ class Predictor:
         else:
             self.thresholds = torch.full((self.num_classes,), default_threshold)
 
-        ckpt = torch.load(str(self.model_file), map_location="cpu")
+        print("DEBUG: loading multi-image model from:", self.model_file)
+        ckpt = torch.load(str(self.model_file), map_location="cpu", weights_only=False)
         model_name = ckpt.get("model_name", model_name_fallback)
         self.model = MultiLabelBackbone(model_name, self.num_classes, pretrained=False)
         state = ckpt.get("model", ckpt)

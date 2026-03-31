@@ -15,4 +15,6 @@ __pycache__/
 
 *.tar.gz
 2025-T1/Food-Image-Classifier/scripts/data/food-101/images/
-2025-T2/Multi-Image-Classifier/scripts/VFN/Images/
+2025-T2/Multi-Image-Classifier/scripts/VFN/Images/.Rhistory
+.python-version
+.Rhistory
