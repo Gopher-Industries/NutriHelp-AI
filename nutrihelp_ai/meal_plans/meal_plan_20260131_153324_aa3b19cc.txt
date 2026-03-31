@@ -1,0 +1,3 @@
+Sample Meal Plan
+ERROR: Allergy answer is invalid. Please state 'None' or specific foods (e.g., Peanuts, Dairy).
+Please provide a correct answer.
