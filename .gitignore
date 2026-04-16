@@ -6,6 +6,7 @@ nutrihelp_ai/data
 venv/
 env/
 .venv/
+
 __pycache__/
 *.py[cod]
 *.pyc
@@ -14,7 +15,6 @@ __pycache__/
 .DS_Store
 
 *.tar.gz
+
 2025-T1/Food-Image-Classifier/scripts/data/food-101/images/
 2025-T2/Multi-Image-Classifier/scripts/VFN/Images/.Rhistory
-.python-version
-.Rhistory

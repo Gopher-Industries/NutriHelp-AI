@@ -1,0 +1,19 @@
+Best validation accuracy: 0.4231
+Overall test accuracy:   0.3500
+
+Per-class test accuracy:
+beef        : 0.0000
+bread       : 0.0000
+chicken     : 0.6250
+egg         : 0.5000
+fruit       : 0.0000
+lamb        : 0.0000
+noodles     : 1.0000
+pasta       : 0.0000
+pork        : 0.0000
+rice        : 0.5000
+salad       : 0.0000
+seafood     : 0.0000
+snacks      : 1.0000
+soup        : 1.0000
+vegetables  : 0.0000

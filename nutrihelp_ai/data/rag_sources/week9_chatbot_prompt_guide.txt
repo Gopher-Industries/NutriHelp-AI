@@ -1,0 +1,11 @@
+A structured prompting approach is important for consistent and reliable chatbot behaviour. Instead of using free-form prompts, the chatbot should follow a clear set of rules and inputs.
+
+The chatbot is designed to act as a nutrition assistant that uses only the ingredients provided by the AI context, respects dietary preferences and allergies, avoids adding unsupported ingredients, and provides clear and practical responses.
+
+User prompts should include available ingredients from image classification, user goals such as healthy or quick meals, and any dietary restrictions. For example: “I have chicken and broccoli. I prefer low-carb meals and something quick.”
+
+Based on the prompt and context, the chatbot should suggest recipes using only the given ingredients, adjust recommendations based on user preferences, clearly state assumptions when needed, and offer alternatives if inputs are unclear.
+
+An example response is: “Here’s a simple low-carb chicken and broccoli stir-fry that takes under 30 minutes. Let me know if you’d like calorie estimates or meal-prep options.”
+
+Using a structured prompt guide helps reduce hallucinations, improves consistency, and makes future tuning easier.
