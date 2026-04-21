@@ -1,26 +1,37 @@
-# nutrihelp_ai/services/multi_image_pipeline.py
-import asyncio
-import tempfile
-import os
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from fastapi import UploadFile
+
+from nutrihelp_ai.services.image_quality import ImageQualityService, InvalidImageError
 from nutrihelp_ai.services.multi_image_classifier.scripts.training.predict import Predictor
 import logging
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOPK = 5
-
-# Internal threshold (not exposed to Swagger)
 UNCLEAR_THRESHOLD = 0.25
-
-# User-facing suggestion 
 UNCLEAR_SUGGESTION = "Please upload a clearer image."
 
 
 class MultiImagePipelineService:
     def __init__(self):
-        self.predictor = Predictor()
+        self.predictor = None
+        self._predictor_error: Optional[str] = None
+        self.quality_service = ImageQualityService()
+
+    def _get_predictor(self) -> Predictor:
+        if self.predictor is not None:
+            return self.predictor
+        if self._predictor_error is not None:
+            raise RuntimeError(self._predictor_error)
+
+        try:
+            self.predictor = Predictor()
+            return self.predictor
+        except Exception as exc:
+            self._predictor_error = str(exc)
+            logger.error("Failed to initialize multi-image predictor: %s", exc, exc_info=True)
+            raise RuntimeError(self._predictor_error) from exc
 
     async def process_images(
         self,
@@ -28,95 +39,79 @@ class MultiImagePipelineService:
         topk: int = DEFAULT_TOPK,
     ) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        loop = asyncio.get_running_loop()
-
+        predictor = self._get_predictor()
         safe_topk = max(1, int(topk)) if topk is not None else DEFAULT_TOPK
 
         for file in files:
-            temp_path: Optional[str] = None
             try:
-                suffix = os.path.splitext(file.filename or "")[1]
-                if not suffix:
-                    suffix = ".jpg"
+                if file.content_type and not file.content_type.startswith("image/"):
+                    raise InvalidImageError("Uploaded file must use an image content type.")
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                    tmp.write(await file.read())
-                    temp_path = tmp.name
+                image_bytes = await file.read()
+                quality = self.quality_service.analyze(image_bytes)
+                pred = predictor.predict_from_bytes(image_bytes, safe_topk)
 
-                prediction_list = await loop.run_in_executor(
-                    None, self.predictor.predict_paths, [temp_path], safe_topk
-                )
-
-                if not prediction_list:
-                    results.append(
-                        {
-                            "labels": [],
-                            "confidences": [],
-                            "max_label": None,
-                            "max_conf": 0.0,
-                            "topk_labels": [],
-                            "topk_scores": [],
-                            "is_unclear": True,
-                            "unclear_reason": "No prediction returned by model.",
-                            "suggestion": UNCLEAR_SUGGESTION,
-                        }
+                topk_items = [
+                    {"label": label, "score": round(float(score), 4)}
+                    for label, score in zip(
+                        pred.get("topk_labels", []) or [],
+                        pred.get("topk_scores", []) or [],
                     )
-                    continue
+                ]
+                matches = [
+                    {"label": label, "score": round(float(score), 4)}
+                    for label, score in zip(
+                        pred.get("labels", []) or [],
+                        pred.get("confidences", []) or [],
+                    )
+                ]
 
-                pred = prediction_list[0]
+                label = topk_items[0]["label"] if topk_items else None
+                confidence = float(topk_items[0]["score"]) if topk_items else 0.0
+                quality_unclear = bool(quality.get("should_mark_unclear", False))
+                low_confidence = confidence < UNCLEAR_THRESHOLD
+                is_unclear = quality_unclear or low_confidence
 
-                topk_labels = pred.get("topk_labels", []) or []
-                topk_scores = pred.get("topk_scores", []) or []
+                reasons: List[str] = []
+                if low_confidence:
+                    reasons.append(
+                        f"Top-1 confidence {confidence:.2f} below threshold {UNCLEAR_THRESHOLD:.2f}."
+                    )
+                reasons.extend(quality.get("issues", []))
 
-                if topk_labels and topk_scores:
-                    max_label = topk_labels[0]
-                    max_conf = float(topk_scores[0])
-                else:
-                    scores = pred.get("scores", []) or []
-                    max_label = None
-                    max_conf = float(max(scores)) if scores else 0.0
-
-                is_unclear = max_conf < UNCLEAR_THRESHOLD
-                unclear_reason = (
-                    f"Top-1 confidence {max_conf:.2f} below threshold {UNCLEAR_THRESHOLD:.2f}."
-                    if is_unclear
-                    else ""
+                results.append(
+                    {
+                        "label": label,
+                        "confidence": confidence,
+                        "matches": matches,
+                        "topk": topk_items,
+                        "is_unclear": is_unclear,
+                        "unclear_reason": " ".join(reasons).strip(),
+                        "suggestion": UNCLEAR_SUGGESTION if is_unclear else "",
+                        "quality": self.quality_service.response_payload(quality),
+                        "error": None,
+                    }
                 )
-
-                result = {
-                    "labels": pred.get("labels", []) or [],
-                    "confidences": pred.get("confidences", []) or [],
-                    "max_label": max_label,
-                    "max_conf": max_conf,
-                    "topk_labels": topk_labels,
-                    "topk_scores": topk_scores,
-                    "is_unclear": is_unclear,
-                    "unclear_reason": unclear_reason,
-                }
-
-                if is_unclear:
-                    result["suggestion"] = UNCLEAR_SUGGESTION
-
-                results.append(result)
 
             except Exception as e:
                 logger.error(
-                    f"Failed to process image {getattr(file, 'filename', '')}: {e}",
+                    "Failed to process image %s: %s",
+                    getattr(file, "filename", ""),
+                    e,
                     exc_info=True,
                 )
                 results.append(
                     {
-                        "error": "Failed to process this image",
+                        "label": None,
+                        "confidence": 0.0,
+                        "matches": [],
+                        "topk": [],
                         "is_unclear": True,
-                        "unclear_reason": "Processing error occurred.",
+                        "unclear_reason": str(e) if isinstance(e, InvalidImageError) else "Processing error occurred.",
                         "suggestion": UNCLEAR_SUGGESTION,
+                        "quality": self.quality_service.fallback_payload([str(e)]),
+                        "error": "Failed to process this image",
                     }
                 )
-            finally:
-                if temp_path and os.path.exists(temp_path):
-                    try:
-                        os.remove(temp_path)
-                    except Exception:
-                        pass
 
         return results

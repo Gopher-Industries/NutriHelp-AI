@@ -1,37 +1,40 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from nutrihelp_ai.services.image_pipeline import ImagePipelineService
-from nutrihelp_ai.services.active_ai_backend import GroqChromaBackend
+from nutrihelp_ai.services.image_quality import InvalidImageError
+from nutrihelp_ai.schemas import SingleImageAnalysisResponse
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-agent = GroqChromaBackend()
+pipeline = ImagePipelineService()
 
-@router.post("/image-analysis")
-async def full_image_analysis(file: UploadFile = File(...)):
+@router.post(
+    "/image-analysis",
+    response_model=SingleImageAnalysisResponse,
+    summary="Full Image Analysis",
+    description=(
+        "Analyze a single food image and return classification, quality flags, top-k alternatives, "
+        "and a local nutrition lookup."
+    ),
+)
+async def full_image_analysis(
+    file: UploadFile = File(...),
+    topk: int = Query(5, ge=1, le=10, description="How many top classes to return"),
+):
     """
     Endpoint to analyze a food image and return estimated nutrition info.
     """
     try:
-        # Step 1: Run image through the AI pipeline
-        pipeline = ImagePipelineService()
-        food_type, _, confidence = await pipeline.process_image(file)
-
-        # Step 2: Get nutrition data from the active AI backend
-        nutrition_data = agent.run_agent_dynamic(food_type)
-
-        # Step 4: Ensure keys exist to avoid KeyError
-        calories = nutrition_data.get("calories")
-        recommendation = nutrition_data.get("recommendation", "")
-
-        # Step 5: Return structured response
-        return {
-            "food": food_type,
-            "estimated_calories": calories,
-            "confidence": confidence,
-            "recommendation": recommendation
-        }
-
+        return await pipeline.process_image(file, topk=topk)
+    except InvalidImageError as e:
+        logger.warning("Image validation failed: %s", str(e))
+        raise HTTPException(status_code=422, detail=str(e))
+    except RuntimeError as e:
+        logger.error("Single-image predictor unavailable: %s", str(e), exc_info=True)
+        raise HTTPException(
+            status_code=503,
+            detail="Single-image model is unavailable. Check food_classifier.pth and model compatibility.",
+        )
     except Exception as e:
         logger.error(f"Image analysis endpoint failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
