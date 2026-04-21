@@ -1,28 +1,87 @@
+import logging
+from typing import Any, Dict, List, Optional
+
 from fastapi import UploadFile
-from PIL import Image
-from nutrihelp_ai.services.Food_Image_Classifier.scripts.predict import predict_image
-import os
-import tempfile
+
+from nutrihelp_ai.services.Food_Image_Classifier.scripts.predict import Predictor
+from nutrihelp_ai.services.image_quality import ImageQualityService, InvalidImageError
+from nutrihelp_ai.services.nutrition_lookup import NutritionLookupService
+
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_TOPK = 5
+UNCLEAR_THRESHOLD = 0.60
+UNCLEAR_SUGGESTION = "Please upload a clearer, closer food image."
+
 
 class ImagePipelineService:
-    async def process_image(self, file: UploadFile):
-        # Step 1: Save uploaded file temporarily
-        suffix = os.path.splitext(file.filename)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(await file.read())
-            temp_path = tmp.name
+    def __init__(self):
+        self.predictor = None
+        self._predictor_error: Optional[str] = None
+        self.quality_service = ImageQualityService()
+        self.nutrition_lookup = NutritionLookupService()
 
-        print("[Stage 1] Image received and loaded.")
+    def _get_predictor(self) -> Predictor:
+        if self.predictor is not None:
+            return self.predictor
+        if self._predictor_error is not None:
+            raise RuntimeError(self._predictor_error)
 
-        # Step 2: Run prediction using your trained model
-        result = predict_image(temp_path)
-        food_type = result["predicted_class"]
-        confidence = result["confidence"]  # get confidence from predict_image
-        print(f"[Stage 2] Food classification complete: {food_type} ({confidence:.2f})")
+        try:
+            self.predictor = Predictor()
+            return self.predictor
+        except Exception as exc:
+            self._predictor_error = str(exc)
+            logger.error("Failed to initialize single-image predictor: %s", exc, exc_info=True)
+            raise RuntimeError(self._predictor_error) from exc
 
-        # Step 3: Estimate calories (dummy logic for now)
-        estimated_calories = 200  # placeholder
-        print(f"[Stage 3] Calorie estimation complete: {estimated_calories} kcal")
+    async def process_image(
+        self,
+        file: UploadFile,
+        topk: int = DEFAULT_TOPK,
+    ) -> Dict[str, Any]:
+        if file.content_type and not file.content_type.startswith("image/"):
+            raise InvalidImageError("Uploaded file must use an image content type.")
 
-        # Return confidence as well
-        return food_type, estimated_calories, confidence
+        image_bytes = await file.read()
+        quality = self.quality_service.analyze(image_bytes)
+        predictor = self._get_predictor()
+        prediction = predictor.predict_from_bytes(image_bytes, topk=topk)
+
+        topk_items = list(prediction.get("topk", []))
+        label = prediction.get("label")
+        confidence = float(prediction.get("confidence", 0.0))
+        matches: List[Dict[str, Any]] = topk_items[:1] if label else []
+
+        quality_unclear = bool(quality.get("should_mark_unclear", False))
+        low_confidence = confidence < UNCLEAR_THRESHOLD
+        is_unclear = quality_unclear or low_confidence
+
+        reasons: List[str] = []
+        if low_confidence:
+            reasons.append(
+                f"Top-1 confidence {confidence:.2f} below threshold {UNCLEAR_THRESHOLD:.2f}."
+            )
+        reasons.extend(quality.get("issues", []))
+        unclear_reason = " ".join(reasons).strip()
+
+        nutrition = self.nutrition_lookup.lookup(label)
+        recommendation = self.nutrition_lookup.build_recommendation(
+            nutrition,
+            is_unclear=is_unclear,
+        )
+
+        return {
+            "label": label,
+            "confidence": confidence,
+            "matches": matches,
+            "topk": topk_items,
+            "is_unclear": is_unclear,
+            "unclear_reason": unclear_reason,
+            "suggestion": UNCLEAR_SUGGESTION if is_unclear else "",
+            "quality": self.quality_service.response_payload(quality),
+            "error": None,
+            "nutrition": nutrition,
+            "recommendation": recommendation,
+        }
