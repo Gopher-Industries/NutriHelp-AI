@@ -3,9 +3,9 @@ import torch.nn as nn
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 class FoodClassifier(nn.Module):
-    def __init__(self, num_classes=101):
+    def __init__(self, num_classes=101, use_pretrained=True):
         super(FoodClassifier, self).__init__()
-        weights = EfficientNet_B0_Weights.IMAGENET1K_V1
+        weights = EfficientNet_B0_Weights.IMAGENET1K_V1 if use_pretrained else None
         self.base_model = efficientnet_b0(weights=weights)
         in_features = self.base_model.classifier[1].in_features
         self.base_model.classifier = nn.Sequential(
