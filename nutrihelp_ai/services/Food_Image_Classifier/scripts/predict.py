@@ -63,7 +63,10 @@ class Predictor:
             or checkpoint
         )
 
-        self.model = FoodClassifier(num_classes=len(self.class_names))
+        self.model = FoodClassifier(
+            num_classes=len(self.class_names),
+            use_pretrained=False,
+        )
         self.model.load_state_dict(model_state)
         self.model.to(self.device).eval()
         self.transform = build_eval_transform(
