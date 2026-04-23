@@ -79,13 +79,11 @@ class ImageQualityService:
         if contains_large_face:
             issues.append("Image appears to contain a large face. Please upload a clear food photo.")
 
-        should_mark_unclear = (
+        blocking_quality_issue = (
             min(width, height) < MIN_DIMENSION
             or sharpness < MIN_SHARPNESS
             or contains_large_face
-            or len(issues) >= 2
         )
-        passed = len(issues) == 0
 
         return {
             "width": width,
@@ -93,10 +91,10 @@ class ImageQualityService:
             "brightness": brightness,
             "contrast": contrast,
             "sharpness": sharpness,
-            "passed": passed,
+            "passed": not blocking_quality_issue,
             "issues": issues,
-            "should_mark_unclear": should_mark_unclear,
-            "should_reject_prediction": not passed,
+            "should_mark_unclear": blocking_quality_issue,
+            "should_reject_prediction": contains_large_face,
         }
 
     def response_payload(self, analysis: Dict[str, object]) -> Dict[str, object]:
