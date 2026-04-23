@@ -67,9 +67,7 @@ class ImagePipelineService:
         public_topk = [] if prediction_rejected else topk_items
         matches: List[Dict[str, Any]] = public_topk[:1] if public_label else []
 
-        quality_unclear = bool(quality.get("should_mark_unclear", False)) or not bool(
-            quality.get("passed", True)
-        )
+        quality_unclear = bool(quality.get("should_mark_unclear", False))
         low_confidence = False if prediction_rejected else confidence < UNCLEAR_THRESHOLD
         is_unclear = prediction_rejected or quality_unclear or low_confidence
 
