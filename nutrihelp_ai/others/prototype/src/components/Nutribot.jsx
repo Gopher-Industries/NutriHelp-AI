@@ -2,15 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../Nutribot.css';
 
 export default function Nutribot() {
-  const [messages, setMessages] = useState(() => JSON.parse(localStorage.getItem('chatHistory')) || []);
+  const [messages, setMessages] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('chatHistory')) || [];
+    } catch {
+      return [];
+    }
+  });
   const [input, setInput] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const chatRef = useRef(null);
   const mascotRef = useRef(null);
+  const requestControllerRef = useRef(null);
 
-  const AI_API_URL = 'http://localhost:80/api/chatbot/query'; // 替换为你的后端 API
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000';
+  const RAG_API_PATH = '/ai-model/chatbot/chat_with_rag';
+  const AI_API_PATH = '/ai-model/chatbot/chat';
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
@@ -29,23 +39,177 @@ export default function Nutribot() {
     }
   }, [messages]);
 
-  const sendMessage = async (text) => {
-    if (!text) return;
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setMessages(prev => [...prev, { sender: 'user', text, time: now }, { sender: 'bot', text: 'Typing...', time: now }]);
-    setInput('');
+  useEffect(() => {
+    return () => {
+      if (requestControllerRef.current) {
+        requestControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const getNow = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const normalizeReplyText = (data) => {
+    const candidates = [
+      data?.msg,
+      data?.response_text,
+      data?.response,
+      data?.answer,
+      data?.data?.msg,
+    ];
+    const valid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+    return valid ? valid.trim() : '';
+  };
+
+  const isWeakRagResponse = (text) => {
+    if (!text) return true;
+    const clean = text.trim();
+    if (!clean) return true;
+
+    const weakMarkers = [
+      "i don't know",
+      'i do not know',
+      'not sure',
+      'unable to answer',
+      'unable to verify',
+      'no relevant',
+      'insufficient information',
+      'cannot provide',
+      'please try again',
+      'sorry',
+      'knowledge base',
+      'do not have',
+      'does not contain',
+    ];
+
+    const lowered = clean.toLowerCase();
+    if (weakMarkers.some((marker) => lowered.includes(marker))) return true;
+
+    if (clean.length < 20) {
+    const hasUsefulContent = /\d+|percent|%|children|vegetables|fruit|nutrition/i.test(clean);
+    if (!hasUsefulContent) return true;
+  }
+
+    return false;
+  };
+
+  const buildApiUrl = (path) => `${API_BASE_URL.replace(/\/$/, '')}${path}`;
+
+  const postToAssistant = async (path, text, signal) => {
+    const res = await fetch(buildApiUrl(path), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: text }),
+      signal,
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    if (!res.ok) {
+      const detail =
+        data?.detail?.detail || data?.detail?.error || data?.detail || data?.error || `HTTP ${res.status}`;
+      throw new Error(typeof detail === 'string' ? detail : 'Assistant request failed.');
+    }
+
+    return normalizeReplyText(data);
+  };
+
+  const getBestReply = async (text, signal, onPhaseChange) => {
+    let ragReply = '';
+    let ragError = null;
 
     try {
-      const res = await fetch(AI_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({user_input: text})
+      onPhaseChange('Searching nutrition knowledge...');
+      ragReply = await postToAssistant(RAG_API_PATH, text, signal);
+      if (!isWeakRagResponse(ragReply)) {
+        return { reply: ragReply, source: 'rag' };
+      }
+    } catch (error) {
+      ragError = error;
+    }
+
+    try {
+      onPhaseChange('Improving response...');
+      const fallbackReply = await postToAssistant(AI_API_PATH, text, signal);
+      if (!fallbackReply) {
+        throw new Error('Fallback response was empty.');
+      }
+      return { reply: fallbackReply, source: 'fallback' };
+    } catch (fallbackError) {
+      if (ragReply) {
+        return {
+          reply: `${ragReply}\n\n⚠️ I could not refine this response right now. Please try rephrasing your question.`,
+          source: 'rag',
+        };
+      }
+
+      if (ragError) {
+        throw new Error(`RAG failed: ${ragError.message}. Fallback failed: ${fallbackError.message}`);
+      }
+
+      throw fallbackError;
+    }
+  };
+
+  const sendMessage = async (text) => {
+    const trimmed = text.trim();
+    if (!trimmed || isThinking) return;
+
+    const now = getNow();
+    const userMessage = { id: `${Date.now()}-user`, sender: 'user', text: trimmed, time: now };
+    const pendingBotMessage = {
+      id: `${Date.now()}-bot-loading`,
+      sender: 'bot',
+      text: 'Thinking...',
+      time: now,
+      status: 'loading',
+      meta: 'Preparing answer...',
+    };
+
+    setMessages((prev) => [...prev, userMessage, pendingBotMessage]);
+    setInput('');
+    setIsThinking(true);
+
+    requestControllerRef.current = new AbortController();
+
+    try {
+      const best = await getBestReply(trimmed, requestControllerRef.current.signal, (phase) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === pendingBotMessage.id ? { ...msg, text: 'Thinking...', meta: phase, time: getNow() } : msg
+          )
+        );
       });
-      const data = await res.json();
-      const reply = data.response_text || 'Sorry, I didn’t understand.';
-      setMessages(prev => [...prev.slice(0, -1), { sender: 'bot', text: reply, time: now }]);
-    } catch {
-      setMessages(prev => [...prev.slice(0, -1), { sender: 'bot', text: 'Error connecting to server.', time: now }]);
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === pendingBotMessage.id
+            ? { ...msg, text: best.reply, status: 'sent', source: best.source, meta: '', time: getNow() }
+            : msg
+        )
+      );
+    } catch (error) {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === pendingBotMessage.id
+            ? {
+                ...msg,
+                text: 'I’m having trouble responding right now. Please try again in a moment.',
+                status: 'error',
+                meta: error?.message || 'Unknown error.',
+                time: getNow(),
+              }
+            : msg
+        )
+      );
+    } finally {
+      setIsThinking(false);
+      requestControllerRef.current = null;
     }
   };
 
@@ -56,6 +220,7 @@ export default function Nutribot() {
   const quickAsk = (text) => {
     setInput(text);
     sendMessage(text);
+    setShowMenu(false);
   };
 
   const toggleMascotMenu = () => {
@@ -70,6 +235,8 @@ export default function Nutribot() {
   // 拖动卡通小人
   useEffect(() => {
     const mascot = mascotRef.current;
+    if (!mascot) return undefined;
+
     let isDragging = false;
     let offsetX, offsetY;
 
@@ -118,9 +285,26 @@ export default function Nutribot() {
       <div className="main-container">
         <div className="chat-box" ref={chatRef}>
           {messages.map((msg, i) => (
-            <div key={i} className={`message-row ${msg.sender}`}>
-              <div className="message-bubble">{msg.text}</div>
-              <div className="timestamp">{msg.time}</div>
+            <div key={msg.id || i} className={`message-row ${msg.sender}`}>
+              <div className={`message-bubble ${msg.status === 'error' ? 'error' : ''}`}>
+                {msg.status === 'loading' ? (
+                  <>
+                    <span>{msg.text}</span>
+                    <span className="typing-dots" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </>
+                ) : (
+                  msg.text
+                )}
+              </div>
+              <div className="timestamp">
+                {msg.time}
+                {msg.source ? ` · ${msg.source === 'rag' ? 'RAG' : 'Fallback'}` : ''}
+              </div>
+              {msg.meta ? <div className="message-meta">{msg.meta}</div> : null}
             </div>
           ))}
         </div>
@@ -131,8 +315,11 @@ export default function Nutribot() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask me anything..."
+            disabled={isThinking}
           />
-          <button onClick={() => sendMessage(input)}>➤</button>
+          <button onClick={() => sendMessage(input)} disabled={isThinking || !input.trim()}>
+            ➤
+          </button>
         </div>
 
         <div className="file-upload">
@@ -144,8 +331,8 @@ export default function Nutribot() {
               onChange={(e) => {
                 const file = e.target.files[0];
                 if (file) {
-                  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  setMessages(prev => [...prev, { sender: 'bot', text: `📂 File "${file.name}" uploaded.`, time: now }]);
+                  const now = getNow();
+                  setMessages((prev) => [...prev, { sender: 'bot', text: `📂 File "${file.name}" uploaded.`, time: now }]);
                 }
               }}
             />
