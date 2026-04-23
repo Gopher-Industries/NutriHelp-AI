@@ -11,8 +11,16 @@ from nutrihelp_ai.services.nutrition_lookup import NutritionLookupService
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOPK = 5
-UNCLEAR_THRESHOLD = 0.60
-UNCLEAR_SUGGESTION = "Please upload a clearer, closer food image."
+# The classifier is closed-set: every image is forced into one of the known food
+# classes. Keep nutrition enrichment conservative so non-food or ambiguous images
+# do not look like confirmed meals.
+UNCLEAR_THRESHOLD = 0.80
+UNCLEAR_SUGGESTION = "Please upload a clearer food image or confirm the dish manually."
+UNCLEAR_NUTRITION_SOURCE = "withheld_unclear_prediction"
+REJECTED_SUGGESTION = (
+    "Please upload a clear food photo. The current image could not be validated as a food item."
+)
+REJECTED_NUTRITION_SOURCE = "withheld_rejected_image"
 
 
 class ImagePipelineService:
@@ -52,13 +60,22 @@ class ImagePipelineService:
         topk_items = list(prediction.get("topk", []))
         label = prediction.get("label")
         confidence = float(prediction.get("confidence", 0.0))
-        matches: List[Dict[str, Any]] = topk_items[:1] if label else []
 
-        quality_unclear = bool(quality.get("should_mark_unclear", False))
-        low_confidence = confidence < UNCLEAR_THRESHOLD
-        is_unclear = quality_unclear or low_confidence
+        prediction_rejected = bool(quality.get("should_reject_prediction", False))
+        public_label = None if prediction_rejected else label
+        public_confidence = 0.0 if prediction_rejected else confidence
+        public_topk = [] if prediction_rejected else topk_items
+        matches: List[Dict[str, Any]] = public_topk[:1] if public_label else []
+
+        quality_unclear = bool(quality.get("should_mark_unclear", False)) or not bool(
+            quality.get("passed", True)
+        )
+        low_confidence = False if prediction_rejected else confidence < UNCLEAR_THRESHOLD
+        is_unclear = prediction_rejected or quality_unclear or low_confidence
 
         reasons: List[str] = []
+        if prediction_rejected:
+            reasons.append("Image could not be validated as a clear food photo.")
         if low_confidence:
             reasons.append(
                 f"Top-1 confidence {confidence:.2f} below threshold {UNCLEAR_THRESHOLD:.2f}."
@@ -66,20 +83,33 @@ class ImagePipelineService:
         reasons.extend(quality.get("issues", []))
         unclear_reason = " ".join(reasons).strip()
 
-        nutrition = self.nutrition_lookup.lookup(label)
+        nutrition = (
+            self.nutrition_lookup.unavailable(
+                public_label,
+                source=REJECTED_NUTRITION_SOURCE
+                if prediction_rejected
+                else UNCLEAR_NUTRITION_SOURCE,
+            )
+            if is_unclear
+            else self.nutrition_lookup.lookup(public_label)
+        )
         recommendation = self.nutrition_lookup.build_recommendation(
             nutrition,
             is_unclear=is_unclear,
         )
 
         return {
-            "label": label,
-            "confidence": confidence,
+            "label": public_label,
+            "confidence": public_confidence,
             "matches": matches,
-            "topk": topk_items,
+            "topk": public_topk,
             "is_unclear": is_unclear,
             "unclear_reason": unclear_reason,
-            "suggestion": UNCLEAR_SUGGESTION if is_unclear else "",
+            "suggestion": REJECTED_SUGGESTION
+            if prediction_rejected
+            else UNCLEAR_SUGGESTION
+            if is_unclear
+            else "",
             "quality": self.quality_service.response_payload(quality),
             "error": None,
             "nutrition": nutrition,

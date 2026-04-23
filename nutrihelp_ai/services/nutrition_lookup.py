@@ -355,6 +355,11 @@ LABEL_ALIASES = {
 
 
 class NutritionLookupService:
+    def unavailable(self, label: Optional[str] = None, *, source: str = "unavailable") -> Dict[str, object]:
+        nutrition = self._unavailable(label=label)
+        nutrition["source"] = source
+        return nutrition
+
     def lookup(self, label: Optional[str]) -> Dict[str, object]:
         if not label:
             return self._unavailable()
