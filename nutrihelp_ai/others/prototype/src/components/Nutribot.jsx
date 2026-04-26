@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../Nutribot.css';
 
 export default function Nutribot() {
+  
   const [messages, setMessages] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('chatHistory')) || [];
@@ -13,13 +14,14 @@ export default function Nutribot() {
   const [darkMode, setDarkMode] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  
   const [isThinking, setIsThinking] = useState(false);
   const chatRef = useRef(null);
   const mascotRef = useRef(null);
+ 
   const requestControllerRef = useRef(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000';
-  const RAG_API_PATH = '/ai-model/chatbot/chat_with_rag';
   const AI_API_PATH = '/ai-model/chatbot/chat';
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function Nutribot() {
     }
   }, [messages]);
 
+  
   useEffect(() => {
     return () => {
       if (requestControllerRef.current) {
@@ -47,51 +50,29 @@ export default function Nutribot() {
     };
   }, []);
 
+  
   const getNow = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const normalizeReplyText = (data) => {
+    const detailText =
+      typeof data?.detail === 'string'
+        ? data.detail
+        : typeof data?.detail?.detail === 'string'
+          ? data.detail.detail
+          : '';
+
     const candidates = [
       data?.msg,
       data?.response_text,
       data?.response,
       data?.answer,
       data?.data?.msg,
+      detailText,
     ];
     const valid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
     return valid ? valid.trim() : '';
   };
 
-  const isWeakRagResponse = (text) => {
-    if (!text) return true;
-    const clean = text.trim();
-    if (!clean) return true;
-
-    const weakMarkers = [
-      "i don't know",
-      'i do not know',
-      'not sure',
-      'unable to answer',
-      'unable to verify',
-      'no relevant',
-      'insufficient information',
-      'cannot provide',
-      'please try again',
-      'sorry',
-      'knowledge base',
-      'do not have',
-      'does not contain',
-    ];
-
-    const lowered = clean.toLowerCase();
-    if (weakMarkers.some((marker) => lowered.includes(marker))) return true;
-
-    if (clean.length < 20) {
-    const hasUsefulContent = /\d+|percent|%|children|vegetables|fruit|nutrition/i.test(clean);
-    if (!hasUsefulContent) return true;
-  }
-
-    return false;
-  };
 
   const buildApiUrl = (path) => `${API_BASE_URL.replace(/\/$/, '')}${path}`;
 
@@ -120,40 +101,9 @@ export default function Nutribot() {
   };
 
   const getBestReply = async (text, signal, onPhaseChange) => {
-    let ragReply = '';
-    let ragError = null;
-
-    try {
-      onPhaseChange('Searching nutrition knowledge...');
-      ragReply = await postToAssistant(RAG_API_PATH, text, signal);
-      if (!isWeakRagResponse(ragReply)) {
-        return { reply: ragReply, source: 'rag' };
-      }
-    } catch (error) {
-      ragError = error;
-    }
-
-    try {
-      onPhaseChange('Improving response...');
-      const fallbackReply = await postToAssistant(AI_API_PATH, text, signal);
-      if (!fallbackReply) {
-        throw new Error('Fallback response was empty.');
-      }
-      return { reply: fallbackReply, source: 'fallback' };
-    } catch (fallbackError) {
-      if (ragReply) {
-        return {
-          reply: `${ragReply}\n\n⚠️ I could not refine this response right now. Please try rephrasing your question.`,
-          source: 'rag',
-        };
-      }
-
-      if (ragError) {
-        throw new Error(`RAG failed: ${ragError.message}. Fallback failed: ${fallbackError.message}`);
-      }
-
-      throw fallbackError;
-    }
+    onPhaseChange('Asking NutriHelp AI...');
+    const reply = await postToAssistant(AI_API_PATH, text, signal);
+    return { reply };
   };
 
   const sendMessage = async (text) => {
@@ -161,6 +111,7 @@ export default function Nutribot() {
     if (!trimmed || isThinking) return;
 
     const now = getNow();
+   
     const userMessage = { id: `${Date.now()}-user`, sender: 'user', text: trimmed, time: now };
     const pendingBotMessage = {
       id: `${Date.now()}-bot-loading`,
@@ -199,9 +150,9 @@ export default function Nutribot() {
           msg.id === pendingBotMessage.id
             ? {
                 ...msg,
-                text: 'I’m having trouble responding right now. Please try again in a moment.',
+                text: 'I’m having trouble reaching the nutrition service right now. If you want, I can still share general Australian nutrition guidance while this is unavailable.',
                 status: 'error',
-                meta: error?.message || 'Unknown error.',
+                meta: error?.message || 'Temporary connection issue.',
                 time: getNow(),
               }
             : msg
@@ -276,7 +227,7 @@ export default function Nutribot() {
     <div className="nutribot-container">
       <div className="sidebar">
         <div className="sidebar-header">Nutribot</div>
-        <button onClick={() => setMessages([])}>🗑️ Clear Chat</button>
+        <button onClick={() => setMessages([])}>🗑 Clear Chat</button>
         <button onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
         </button>
@@ -302,7 +253,15 @@ export default function Nutribot() {
               </div>
               <div className="timestamp">
                 {msg.time}
-                {msg.source ? ` · ${msg.source === 'rag' ? 'RAG' : 'Fallback'}` : ''}
+                {msg.source
+                  ? ` · ${
+                      msg.source === 'rag'
+                        ? 'RAG'
+                        : msg.source === 'guided_fallback'
+                          ? 'Guided Fallback'
+                          : 'Fallback'
+                    }`
+                  : ''}
               </div>
               {msg.meta ? <div className="message-meta">{msg.meta}</div> : null}
             </div>
@@ -315,6 +274,7 @@ export default function Nutribot() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask me anything..."
+            
             disabled={isThinking}
           />
           <button onClick={() => sendMessage(input)} disabled={isThinking || !input.trim()}>
