@@ -76,6 +76,17 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("Invalid integer value for %s=%r; falling back to %s", name, raw, default)
+        return default
+
+
 @dataclass(frozen=True)
 class ActiveAISettings:
     groq_api_key: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""))
@@ -86,6 +97,9 @@ class ActiveAISettings:
     chroma_tenant: str = field(default_factory=lambda: os.getenv("CHROMA_TENANT", ""))
     chroma_database: str = field(default_factory=lambda: os.getenv("CHROMA_DATABASE", ""))
     rag_collection: str = field(default_factory=lambda: os.getenv("RAG_COLLECTION", "aus_food_nutrition"))
+    rag_n_results: int = field(default_factory=lambda: _env_int("RAG_N_RESULTS", 5))
+    rag_distance_threshold: float = field(default_factory=lambda: _env_float("RAG_DISTANCE_THRESHOLD", 0.8))
+    rag_relaxed_distance_threshold: float = field(default_factory=lambda: _env_float("RAG_RELAXED_DISTANCE_THRESHOLD", 1.6))
     groq_temperature: float = field(default_factory=lambda: _env_float("GROQ_TEMPERATURE", 0.0))
     groq_top_p: float = field(default_factory=lambda: _env_float("GROQ_TOP_P", 1.0))
 
@@ -121,6 +135,16 @@ GROUNDING_SYSTEM_PROMPT = (
     "6) If the context is insufficient, reply exactly: 'I don\'t have enough information on that topic in my knowledge base.'"
 )
 
+DOMAIN_CHAT_SYSTEM_PROMPT = (
+    "You are NutriBot, the NutriHelp assistant.\n"
+    "You only help with nutrition, meals, food choices, healthy eating, calorie guidance, nutrients, "
+    "dietary habits, food scanning follow-up, and user health goals related to diet and lifestyle.\n"
+    "If the user asks something outside that scope, do not answer it as a general-purpose assistant. "
+    "Instead, briefly explain that you focus on nutrition, meals, and healthy eating, then invite the user "
+    "to ask a food or nutrition question.\n"
+    "Keep replies concise, practical, and friendly."
+)
+
 
 class GroqChromaBackend:
     def __init__(
@@ -141,6 +165,78 @@ class GroqChromaBackend:
         if not Groq:
             return "groq package not installed/importable"
         return "unknown client initialization issue"
+
+    def _domain_redirect_reply(self) -> str:
+        return (
+            "I'm here to help with nutrition, meals, healthy eating, and your food-related health goals. "
+            "Try asking about foods, calories, nutrients, meal ideas, or diet guidance."
+        )
+
+    def _is_social_prompt(self, prompt: str) -> bool:
+        clean = (prompt or "").strip().lower()
+        if not clean:
+            return False
+        social_patterns = [
+            r"^(hi|hello|hey|good morning|good afternoon|good evening)\b",
+            r"^(thanks|thank you|thx)\b",
+            r"^(how are you|how are you doing)\b",
+        ]
+        return any(re.search(pattern, clean) for pattern in social_patterns)
+
+    def _is_nutrition_domain_prompt(self, prompt: str) -> bool:
+        clean = (prompt or "").strip().lower()
+        if not clean:
+            return False
+
+        nutrition_keywords = [
+            "nutrition",
+            "nutrient",
+            "calorie",
+            "protein",
+            "carb",
+            "fat",
+            "fibre",
+            "fiber",
+            "vitamin",
+            "mineral",
+            "iron",
+            "calcium",
+            "sodium",
+            "cholesterol",
+            "food",
+            "meal",
+            "diet",
+            "healthy eating",
+            "weight loss",
+            "weight gain",
+            "breakfast",
+            "lunch",
+            "dinner",
+            "snack",
+            "recipe",
+            "ingredient",
+            "serving",
+            "portion",
+            "scan",
+            "dish",
+            "older adults",
+            "seniors",
+            "exercise",
+            "gym",
+            "hydration",
+            "water",
+            "diabetes",
+            "blood pressure",
+        ]
+        return any(keyword in clean for keyword in nutrition_keywords)
+
+    def _chat_with_domain_guard(self, prompt: str, model: Optional[str] = None) -> str:
+        if self._is_social_prompt(prompt):
+            return self.chat(prompt, model=model, system_prompt=DOMAIN_CHAT_SYSTEM_PROMPT)
+        if not self._is_nutrition_domain_prompt(prompt):
+            logger.info("Domain guard redirected out-of-scope prompt")
+            return self._domain_redirect_reply()
+        return self.chat(prompt, model=model, system_prompt=DOMAIN_CHAT_SYSTEM_PROMPT)
 
     def _get_groq_client(self):
         if self._groq_client is not None:
@@ -304,10 +400,10 @@ class GroqChromaBackend:
             return _safe_reply()
 
     def run_agent(self, prompt: str, model: Optional[str] = None) -> str:
-        return self.chat(prompt, model=model)
+        return self._chat_with_domain_guard(prompt, model=model)
 
     async def run_agent_ws(self, prompt: str, model: Optional[str] = None) -> str:
-        return self.chat(prompt, model=model)
+        return self._chat_with_domain_guard(prompt, model=model)
 
     def retrieve(self, query: str, n_results: int = 4) -> List[str]:
         collection = self._get_collection()
@@ -323,22 +419,133 @@ class GroqChromaBackend:
             logger.error("Chroma query failed: %s", exc)
             return []
 
-    def retrieve_with_threshold(self, query: str, n_results: int = 5, distance_threshold: float = 0.8) -> List[str]:
+    def retrieve_ranked(self, query: str, n_results: Optional[int] = None) -> List[tuple[str, float]]:
         collection = self._get_collection()
         if collection is None:
             return []
 
+        limit = n_results or self.settings.rag_n_results
+        fetch_limit = max(limit, limit * 3)
+
         try:
             if self.collection_count() == 0:
                 return []
-            result = collection.query(query_texts=[query], n_results=n_results)
+            result = collection.query(query_texts=[query], n_results=fetch_limit)
             documents = result.get("documents", [[]])[0]
             distances = result.get("distances", [[]])[0]
         except Exception as exc:
-            logger.error("Chroma threshold query failed: %s", exc)
+            logger.error("Chroma ranked query failed: %s", exc)
             return []
 
-        return [document for document, distance in zip(documents, distances) if distance <= distance_threshold]
+        ranked: List[tuple[str, float]] = []
+        seen_documents = set()
+        for document, distance in zip(documents, distances):
+            if not document or distance is None:
+                continue
+            normalized = " ".join(document.split()).strip().lower()
+            if normalized in seen_documents:
+                continue
+            seen_documents.add(normalized)
+            ranked.append((document, float(distance)))
+            if len(ranked) >= limit:
+                break
+
+        distance_summary = [round(distance, 3) for _, distance in ranked]
+        query_preview = query.replace("\n", " ").strip()[:80]
+        logger.info(
+            "RAG retrieval summary (collection=%s query=%r candidates=%s distances=%s)",
+            self.collection_name,
+            query_preview,
+            len(ranked),
+            distance_summary,
+        )
+        return ranked
+
+    def _looks_like_meta_context(self, document: str) -> bool:
+        lowered = document.lower()
+        meta_markers = [
+            "structured prompting approach",
+            "content-type: application/json",
+            "json body",
+            "example successful response",
+            "the recipe engine does not work directly",
+            "langchain",
+            "redis memory",
+            "serp",
+            "openai models",
+        ]
+        return any(marker in lowered for marker in meta_markers)
+
+    def retrieve_with_threshold(self, query: str, n_results: int = 5, distance_threshold: float = 0.8) -> List[str]:
+        ranked = self.retrieve_ranked(query=query, n_results=n_results)
+        return [document for document, distance in ranked if distance <= distance_threshold]
+
+    def retrieve_for_rag(
+        self,
+        query: str,
+        n_results: Optional[int] = None,
+        distance_threshold: Optional[float] = None,
+        relaxed_distance_threshold: Optional[float] = None,
+    ) -> List[str]:
+        limit = n_results or self.settings.rag_n_results
+        strict_threshold = (
+            self.settings.rag_distance_threshold
+            if distance_threshold is None
+            else distance_threshold
+        )
+        relaxed_threshold = (
+            self.settings.rag_relaxed_distance_threshold
+            if relaxed_distance_threshold is None
+            else relaxed_distance_threshold
+        )
+
+        if relaxed_threshold < strict_threshold:
+            relaxed_threshold = strict_threshold
+
+        ranked = self.retrieve_ranked(query=query, n_results=limit)
+        if not ranked:
+            return []
+
+        filtered_ranked = [
+            (document, distance)
+            for document, distance in ranked
+            if not self._looks_like_meta_context(document)
+        ]
+        if len(filtered_ranked) != len(ranked):
+            logger.info(
+                "RAG retrieval filtered low-value contexts=%s",
+                len(ranked) - len(filtered_ranked),
+            )
+        ranked = filtered_ranked
+        if not ranked:
+            logger.info("RAG retrieval produced only filtered meta-contexts; treating as no context")
+            return []
+
+        strict_contexts = [document for document, distance in ranked if distance <= strict_threshold]
+        if strict_contexts:
+            logger.info(
+                "RAG retrieval accepted strict contexts=%s threshold=%.2f",
+                len(strict_contexts),
+                strict_threshold,
+            )
+            return strict_contexts
+
+        relaxed_contexts = [document for document, distance in ranked if distance <= relaxed_threshold]
+        if relaxed_contexts:
+            logger.info(
+                "RAG retrieval accepted relaxed contexts=%s strict=%.2f relaxed=%.2f",
+                len(relaxed_contexts),
+                strict_threshold,
+                relaxed_threshold,
+            )
+            return relaxed_contexts
+
+        logger.info(
+            "RAG retrieval found no contexts within strict=%.2f or relaxed=%.2f",
+            strict_threshold,
+            relaxed_threshold,
+        )
+        return []
 
     def _build_grounded_user_prompt(self, contexts: List[str], question: str) -> str:
         joined_context = "\n\n".join(contexts)
@@ -351,16 +558,17 @@ class GroqChromaBackend:
     def generate_with_rag(
         self,
         prompt: str,
-        n_results: int = 5,
+        n_results: Optional[int] = None,
         model: Optional[str] = None,
-        distance_threshold: float = 0.8,
+        distance_threshold: Optional[float] = None,
+        relaxed_distance_threshold: Optional[float] = None,
     ) -> str:
-        contexts = self.retrieve_with_threshold(
+        contexts = self.retrieve_for_rag(
             query=prompt,
             n_results=n_results,
             distance_threshold=distance_threshold,
+            relaxed_distance_threshold=relaxed_distance_threshold,
         )
-        # AI04: Fallback when Chroma returns no useful context
         if not contexts:
             logger.warning("RAG fallback triggered - no relevant context found for: %s", prompt)
             return (
@@ -409,17 +617,23 @@ class GroqChromaBackend:
     def chat_with_rag_fallback(self, prompt: str, model: Optional[str] = None) -> str:
         logger.info("AI07 chat_with_rag_fallback called (prompt_len=%s)", len(prompt or ""))
         try:
-            contexts = self.retrieve_with_threshold(
+            contexts = self.retrieve_for_rag(
                 query=prompt,
-                n_results=5,
-                distance_threshold=0.8,
+                n_results=self.settings.rag_n_results,
+                distance_threshold=self.settings.rag_distance_threshold,
+                relaxed_distance_threshold=self.settings.rag_relaxed_distance_threshold,
             )
-            logger.info("AI07 retrieval complete (contexts=%s)", len(contexts))
+            logger.info(
+                "AI07 retrieval complete (contexts=%s strict=%.2f relaxed=%.2f)",
+                len(contexts),
+                self.settings.rag_distance_threshold,
+                self.settings.rag_relaxed_distance_threshold,
+            )
 
             # AI07 step 1: no contexts -> fallback to regular chat
             if not contexts:
                 logger.info("AI07 fallback to chat (no RAG context)")
-                return self.chat(prompt, model=model)
+                return self._chat_with_domain_guard(prompt, model=model)
 
             # AI07 step 2: generate RAG answer when contexts exist
             grounded_prompt = self._build_grounded_user_prompt(contexts, prompt)
@@ -433,7 +647,7 @@ class GroqChromaBackend:
             # AI07 step 3: weak RAG response -> fallback to regular chat
             if self._is_weak_rag_response(rag_response):
                 logger.info("AI07 fallback to chat (weak RAG response)")
-                fallback = self.chat(prompt, model=model)
+                fallback = self._chat_with_domain_guard(prompt, model=model)
                 if fallback == _safe_reply():
                     logger.error("AI07 fallback chat also unavailable. Root issue likely: %s", self._chat_unavailable_reason())
                 return fallback
@@ -441,7 +655,7 @@ class GroqChromaBackend:
             return rag_response
         except Exception:
             logger.exception("AI07 RAG fallback pipeline failed, using chat fallback")
-            return self.chat(prompt, model=model)
+            return self._chat_with_domain_guard(prompt, model=model)
 
     def add_documents(self, docs: List[str]) -> int:
         collection = self._get_collection()
