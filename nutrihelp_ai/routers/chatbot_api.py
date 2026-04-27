@@ -32,7 +32,7 @@ class ErrorResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 def sync_chat(request: ChatRequest):
     try:
-        msg = agent.run_agent(request.query)
+        msg = agent.chat_with_rag_fallback(request.query)
         unique_id = str(uuid.uuid4())
         return ChatResponse(
             msg=msg,
