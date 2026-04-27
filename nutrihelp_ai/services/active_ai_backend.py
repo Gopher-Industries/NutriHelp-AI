@@ -65,6 +65,17 @@ def _load_project_env() -> Optional[Path]:
 _LOADED_ENV_PATH = _load_project_env()
 
 
+def _env_float(name: str, default: float) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning("Invalid float value for %s=%r; falling back to %s", name, raw, default)
+        return default
+
+
 @dataclass(frozen=True)
 class ActiveAISettings:
     groq_api_key: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""))
@@ -75,6 +86,8 @@ class ActiveAISettings:
     chroma_tenant: str = field(default_factory=lambda: os.getenv("CHROMA_TENANT", ""))
     chroma_database: str = field(default_factory=lambda: os.getenv("CHROMA_DATABASE", ""))
     rag_collection: str = field(default_factory=lambda: os.getenv("RAG_COLLECTION", "aus_food_nutrition"))
+    groq_temperature: float = field(default_factory=lambda: _env_float("GROQ_TEMPERATURE", 0.0))
+    groq_top_p: float = field(default_factory=lambda: _env_float("GROQ_TOP_P", 1.0))
 
     def missing_chat_env(self) -> List[str]:
         return ["GROQ_API_KEY"] if not self.groq_api_key else []
@@ -95,6 +108,18 @@ class ActiveAISettings:
 
 def _safe_reply() -> str:
     return "Nutribot is currently unavailable."
+
+
+GROUNDING_SYSTEM_PROMPT = (
+    "You are NutriBot, a nutrition assistant.\n"
+    "Strict grounding rules (follow exactly):\n"
+    "1) Use ONLY the information provided in the context below.\n"
+    "2) Answer ONLY using the provided context.\n"
+    "3) Do not add information not present in the context.\n"
+    "4) Do not rephrase, embellish, or expand unnecessarily.\n"
+    "5) Be concise and direct.\n"
+    "6) If the context is insufficient, reply exactly: 'I don\'t have enough information on that topic in my knowledge base.'"
+)
 
 
 class GroqChromaBackend:
@@ -137,11 +162,23 @@ class GroqChromaBackend:
             self._groq_client = None
         return self._groq_client
 
-    def _chat_via_http(self, prompt: str, model: Optional[str] = None) -> str:
+    def _chat_via_http(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         model_name = model or self.settings.groq_model
+        temp = self.settings.groq_temperature if temperature is None else temperature
+        messages = [{"role": "user", "content": prompt}]
+        if system_prompt:
+            messages.insert(0, {"role": "system", "content": system_prompt})
         payload = {
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
             "model": model_name,
+            "temperature": temp,
+            "top_p": self.settings.groq_top_p,
         }
         req = urllib_request.Request(
             url="https://api.groq.com/openai/v1/chat/completions",
@@ -214,9 +251,19 @@ class GroqChromaBackend:
             self._count = 0
         return self._count
 
-    def chat(self, prompt: str, model: Optional[str] = None) -> str:
+    def chat(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         client = self._get_groq_client()
         model_name = model or self.settings.groq_model
+        temp = self.settings.groq_temperature if temperature is None else temperature
+        messages = [{"role": "user", "content": prompt}]
+        if system_prompt:
+            messages.insert(0, {"role": "system", "content": system_prompt})
 
         if client is None:
             missing = self.settings.missing_chat_env()
@@ -225,12 +272,19 @@ class GroqChromaBackend:
                 return _safe_reply()
 
             logger.info("Using Groq HTTP fallback client for model=%s", model_name)
-            return self._chat_via_http(prompt=prompt, model=model_name)
+            return self._chat_via_http(
+                prompt=prompt,
+                model=model_name,
+                system_prompt=system_prompt,
+                temperature=temp,
+            )
 
         try:
             response = client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
+                messages=messages,
                 model=model_name,
+                temperature=temp,
+                top_p=self.settings.groq_top_p,
             )
             content = response.choices[0].message.content
             if not content:
@@ -241,7 +295,12 @@ class GroqChromaBackend:
             logger.error("Groq chat request failed for model=%s: %s", model_name, exc)
             if not self.settings.missing_chat_env():
                 logger.info("Retrying chat via Groq HTTP fallback.")
-                return self._chat_via_http(prompt=prompt, model=model_name)
+                return self._chat_via_http(
+                    prompt=prompt,
+                    model=model_name,
+                    system_prompt=system_prompt,
+                    temperature=temp,
+                )
             return _safe_reply()
 
     def run_agent(self, prompt: str, model: Optional[str] = None) -> str:
@@ -281,6 +340,14 @@ class GroqChromaBackend:
 
         return [document for document, distance in zip(documents, distances) if distance <= distance_threshold]
 
+    def _build_grounded_user_prompt(self, contexts: List[str], question: str) -> str:
+        joined_context = "\n\n".join(contexts)
+        return (
+            f"CONTEXT:\n{joined_context}\n\n"
+            f"QUESTION: {question}\n\n"
+            "Answer using only the provided context."
+        )
+
     def generate_with_rag(
         self,
         prompt: str,
@@ -302,19 +369,13 @@ class GroqChromaBackend:
                 "for Australian seniors."
             )
 
-        # AI04: Grounded prompt - forces model to use retrieved Chroma context
-        joined_context = "\n\n".join(contexts)
-        grounded_prompt = (
-            "You are NutriBot, a nutrition assistant for Australian seniors.\n"
-            "Use ONLY the context below to answer the question.\n"
-            "Do not use general knowledge outside the context.\n"
-            "If the context does not contain enough information, respond with: "
-            "'I don't have enough information on that topic in my knowledge base.'\n\n"
-            f"CONTEXT:\n{joined_context}\n\n"
-            f"QUESTION: {prompt}\n\n"
-            "ANSWER:"
+        grounded_prompt = self._build_grounded_user_prompt(contexts, prompt)
+        return self.chat(
+            grounded_prompt,
+            model=model,
+            system_prompt=GROUNDING_SYSTEM_PROMPT,
+            temperature=0.0,
         )
-        return self.chat(grounded_prompt, model=model)
 
     def _is_weak_rag_response(self, response: str) -> bool:
         if not response:
@@ -346,14 +407,14 @@ class GroqChromaBackend:
         return very_short and not has_nutritional_signal
 
     def chat_with_rag_fallback(self, prompt: str, model: Optional[str] = None) -> str:
-        logger.info("chat_with_rag_fallback called (prompt_len=%s)", len(prompt or ""))
+        logger.info("AI07 chat_with_rag_fallback called (prompt_len=%s)", len(prompt or ""))
         try:
             contexts = self.retrieve_with_threshold(
                 query=prompt,
                 n_results=5,
                 distance_threshold=0.8,
             )
-            logger.info("Retrieval complete (contexts=%s)", len(contexts))
+            logger.info("AI07 retrieval complete (contexts=%s)", len(contexts))
 
             # AI07 step 1: no contexts -> fallback to regular chat
             if not contexts:
@@ -361,30 +422,25 @@ class GroqChromaBackend:
                 return self.chat(prompt, model=model)
 
             # AI07 step 2: generate RAG answer when contexts exist
-            joined_context = "\n\n".join(contexts)
-            grounded_prompt = (
-                "You are NutriBot, a nutrition assistant for Australian seniors.\n"
-                "Use ONLY the context below to answer the question.\n"
-                "Do not use general knowledge outside the context.\n"
-                "If the context does not contain enough information, respond with: "
-                "'I don't have enough information on that topic in my knowledge base.'\n\n"
-                f"CONTEXT:\n{joined_context}\n\n"
-                f"QUESTION: {prompt}\n\n"
-                "ANSWER:"
+            grounded_prompt = self._build_grounded_user_prompt(contexts, prompt)
+            rag_response = self.chat(
+                grounded_prompt,
+                model=model,
+                system_prompt=GROUNDING_SYSTEM_PROMPT,
+                temperature=0.0,
             )
-            rag_response = self.chat(grounded_prompt, model=model)
 
             # AI07 step 3: weak RAG response -> fallback to regular chat
             if self._is_weak_rag_response(rag_response):
-                logger.info("Fallback to chat (weak RAG response)")
+                logger.info("AI07 fallback to chat (weak RAG response)")
                 fallback = self.chat(prompt, model=model)
                 if fallback == _safe_reply():
-                    logger.error("Fallback chat also unavailable. Root issue likely: %s", self._chat_unavailable_reason())
+                    logger.error("AI07 fallback chat also unavailable. Root issue likely: %s", self._chat_unavailable_reason())
                 return fallback
 
             return rag_response
         except Exception:
-            logger.exception("RAG fallback pipeline failed, using chat fallback")
+            logger.exception("AI07 RAG fallback pipeline failed, using chat fallback")
             return self.chat(prompt, model=model)
 
     def add_documents(self, docs: List[str]) -> int:
