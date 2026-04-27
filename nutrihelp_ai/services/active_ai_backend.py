@@ -2,10 +2,16 @@ import json
 import logging
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from dotenv import load_dotenv
+from urllib import error as urllib_error
+from urllib import request as urllib_request
+
+from dotenv import find_dotenv, load_dotenv
+
+logger = logging.getLogger(__name__)
 
 try:
     import chromadb
@@ -18,21 +24,70 @@ except Exception:
     Groq = None
 
 
-load_dotenv()
+def _load_project_env() -> Optional[Path]:
+    """Load .env in a cross-platform way for Linux/Windows execution contexts."""
+    candidates: List[Path] = []
 
-logger = logging.getLogger(__name__)
+    env_override = os.getenv("NUTRIHELP_ENV_FILE", "").strip()
+    if env_override:
+        candidates.append(Path(env_override).expanduser())
+
+    project_root = Path(__file__).resolve().parents[2]
+    candidates.append(project_root / ".env")
+
+    cwd = Path.cwd()
+    candidates.append(cwd / ".env")
+
+    discovered = find_dotenv(filename=".env", usecwd=True)
+    if discovered:
+        candidates.append(Path(discovered))
+
+    seen = set()
+    for candidate in candidates:
+        normalized = str(candidate.resolve()) if candidate.exists() else str(candidate)
+        normalized_key = normalized.lower() if os.name == "nt" else normalized
+        if normalized_key in seen:
+            continue
+        seen.add(normalized_key)
+
+        if candidate.is_file():
+            load_dotenv(dotenv_path=candidate, override=False)
+            logger.info("Loaded environment variables from %s", candidate)
+            return candidate
+
+    logger.warning(
+        "No .env file found. Checked: %s. Chat may be unavailable if GROQ_API_KEY is missing.",
+        ", ".join(str(path) for path in candidates),
+    )
+    return None
+
+
+_LOADED_ENV_PATH = _load_project_env()
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning("Invalid float value for %s=%r; falling back to %s", name, raw, default)
+        return default
 
 
 @dataclass(frozen=True)
 class ActiveAISettings:
-    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
-    groq_model: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-    chroma_mode: str = os.getenv("CHROMA_MODE", "cloud")
-    chroma_path: str = os.getenv("CHROMA_PATH", "./.chroma")
-    chroma_api_key: str = os.getenv("CHROMA_API_KEY", "")
-    chroma_tenant: str = os.getenv("CHROMA_TENANT", "")
-    chroma_database: str = os.getenv("CHROMA_DATABASE", "")
-    rag_collection: str = os.getenv("RAG_COLLECTION", "aus_food_nutrition")
+    groq_api_key: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""))
+    groq_model: str = field(default_factory=lambda: os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"))
+    chroma_mode: str = field(default_factory=lambda: os.getenv("CHROMA_MODE", "cloud"))
+    chroma_path: str = field(default_factory=lambda: os.getenv("CHROMA_PATH", "./.chroma"))
+    chroma_api_key: str = field(default_factory=lambda: os.getenv("CHROMA_API_KEY", ""))
+    chroma_tenant: str = field(default_factory=lambda: os.getenv("CHROMA_TENANT", ""))
+    chroma_database: str = field(default_factory=lambda: os.getenv("CHROMA_DATABASE", ""))
+    rag_collection: str = field(default_factory=lambda: os.getenv("RAG_COLLECTION", "aus_food_nutrition"))
+    groq_temperature: float = field(default_factory=lambda: _env_float("GROQ_TEMPERATURE", 0.0))
+    groq_top_p: float = field(default_factory=lambda: _env_float("GROQ_TOP_P", 1.0))
 
     def missing_chat_env(self) -> List[str]:
         return ["GROQ_API_KEY"] if not self.groq_api_key else []
@@ -55,6 +110,18 @@ def _safe_reply() -> str:
     return "Nutribot is currently unavailable."
 
 
+GROUNDING_SYSTEM_PROMPT = (
+    "You are NutriBot, a nutrition assistant.\n"
+    "Strict grounding rules (follow exactly):\n"
+    "1) Use ONLY the information provided in the context below.\n"
+    "2) Answer ONLY using the provided context.\n"
+    "3) Do not add information not present in the context.\n"
+    "4) Do not rephrase, embellish, or expand unnecessarily.\n"
+    "5) Be concise and direct.\n"
+    "6) If the context is insufficient, reply exactly: 'I don\'t have enough information on that topic in my knowledge base.'"
+)
+
+
 class GroqChromaBackend:
     def __init__(
         self,
@@ -67,12 +134,20 @@ class GroqChromaBackend:
         self._collection = None
         self._count = None
 
+    def _chat_unavailable_reason(self) -> str:
+        missing = self.settings.missing_chat_env()
+        if missing:
+            return f"missing configuration: {', '.join(missing)}"
+        if not Groq:
+            return "groq package not installed/importable"
+        return "unknown client initialization issue"
+
     def _get_groq_client(self):
         if self._groq_client is not None:
             return self._groq_client
 
         if not Groq:
-            logger.warning("groq import failed; active chatbot backend unavailable.")
+            logger.warning("groq import failed; will attempt HTTP fallback if API key is configured.")
             return None
 
         missing = self.settings.missing_chat_env()
@@ -86,6 +161,46 @@ class GroqChromaBackend:
             logger.error("Failed to initialize Groq client: %s", exc)
             self._groq_client = None
         return self._groq_client
+
+    def _chat_via_http(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        model_name = model or self.settings.groq_model
+        temp = self.settings.groq_temperature if temperature is None else temperature
+        messages = [{"role": "user", "content": prompt}]
+        if system_prompt:
+            messages.insert(0, {"role": "system", "content": system_prompt})
+        payload = {
+            "messages": messages,
+            "model": model_name,
+            "temperature": temp,
+            "top_p": self.settings.groq_top_p,
+        }
+        req = urllib_request.Request(
+            url="https://api.groq.com/openai/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.settings.groq_api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib_request.urlopen(req, timeout=30) as resp:
+                response_data = json.loads(resp.read().decode("utf-8"))
+            return response_data.get("choices", [{}])[0].get("message", {}).get("content") or _safe_reply()
+        except urllib_error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="ignore") if hasattr(exc, "read") else ""
+            logger.error("Groq HTTP fallback failed with status %s: %s", exc.code, body)
+            return _safe_reply()
+        except Exception as exc:
+            logger.error("Groq HTTP fallback request failed: %s", exc)
+            return _safe_reply()
 
     def _build_chroma_client(self):
         if not chromadb:
@@ -136,19 +251,56 @@ class GroqChromaBackend:
             self._count = 0
         return self._count
 
-    def chat(self, prompt: str, model: Optional[str] = None) -> str:
+    def chat(
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         client = self._get_groq_client()
+        model_name = model or self.settings.groq_model
+        temp = self.settings.groq_temperature if temperature is None else temperature
+        messages = [{"role": "user", "content": prompt}]
+        if system_prompt:
+            messages.insert(0, {"role": "system", "content": system_prompt})
+
         if client is None:
-            return _safe_reply()
+            missing = self.settings.missing_chat_env()
+            if missing:
+                logger.error("Chat unavailable (%s)", self._chat_unavailable_reason())
+                return _safe_reply()
+
+            logger.info("Using Groq HTTP fallback client for model=%s", model_name)
+            return self._chat_via_http(
+                prompt=prompt,
+                model=model_name,
+                system_prompt=system_prompt,
+                temperature=temp,
+            )
 
         try:
             response = client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=model or self.settings.groq_model,
+                messages=messages,
+                model=model_name,
+                temperature=temp,
+                top_p=self.settings.groq_top_p,
             )
-            return response.choices[0].message.content or _safe_reply()
+            content = response.choices[0].message.content
+            if not content:
+                logger.warning("Groq chat response had empty content; returning safe reply.")
+                return _safe_reply()
+            return content
         except Exception as exc:
-            logger.error("Groq chat request failed: %s", exc)
+            logger.error("Groq chat request failed for model=%s: %s", model_name, exc)
+            if not self.settings.missing_chat_env():
+                logger.info("Retrying chat via Groq HTTP fallback.")
+                return self._chat_via_http(
+                    prompt=prompt,
+                    model=model_name,
+                    system_prompt=system_prompt,
+                    temperature=temp,
+                )
             return _safe_reply()
 
     def run_agent(self, prompt: str, model: Optional[str] = None) -> str:
@@ -188,6 +340,14 @@ class GroqChromaBackend:
 
         return [document for document, distance in zip(documents, distances) if distance <= distance_threshold]
 
+    def _build_grounded_user_prompt(self, contexts: List[str], question: str) -> str:
+        joined_context = "\n\n".join(contexts)
+        return (
+            f"CONTEXT:\n{joined_context}\n\n"
+            f"QUESTION: {question}\n\n"
+            "Answer using only the provided context."
+        )
+
     def generate_with_rag(
         self,
         prompt: str,
@@ -209,19 +369,79 @@ class GroqChromaBackend:
                 "for Australian seniors."
             )
 
-        # AI04: Grounded prompt - forces model to use retrieved Chroma context
-        joined_context = "\n\n".join(contexts)
-        grounded_prompt = (
-            "You are NutriBot, a nutrition assistant for Australian seniors.\n"
-            "Use ONLY the context below to answer the question.\n"
-            "Do not use general knowledge outside the context.\n"
-            "If the context does not contain enough information, respond with: "
-            "'I don't have enough information on that topic in my knowledge base.'\n\n"
-            f"CONTEXT:\n{joined_context}\n\n"
-            f"QUESTION: {prompt}\n\n"
-            "ANSWER:"
+        grounded_prompt = self._build_grounded_user_prompt(contexts, prompt)
+        return self.chat(
+            grounded_prompt,
+            model=model,
+            system_prompt=GROUNDING_SYSTEM_PROMPT,
+            temperature=0.0,
         )
-        return self.chat(grounded_prompt, model=model)
+
+    def _is_weak_rag_response(self, response: str) -> bool:
+        if not response:
+            return True
+
+        clean = response.strip()
+        if not clean:
+            return True
+
+        lowered = clean.lower()
+        hard_weak_markers = [
+            "i don't know",
+            "i do not know",
+            "unable to verify",
+            "unable to answer",
+            "unable to confirm",
+            "cannot verify",
+            "not enough information",
+            "insufficient information",
+            "no relevant nutrition information",
+            "knowledge base",
+        ]
+
+        if any(marker in lowered for marker in hard_weak_markers):
+            return True
+
+        very_short = len(clean) < 20
+        has_nutritional_signal = bool(re.search(r"\d|%|serving|vegetable|fruit|diet|nutrition|guideline", clean, re.IGNORECASE))
+        return very_short and not has_nutritional_signal
+
+    def chat_with_rag_fallback(self, prompt: str, model: Optional[str] = None) -> str:
+        logger.info("AI07 chat_with_rag_fallback called (prompt_len=%s)", len(prompt or ""))
+        try:
+            contexts = self.retrieve_with_threshold(
+                query=prompt,
+                n_results=5,
+                distance_threshold=0.8,
+            )
+            logger.info("AI07 retrieval complete (contexts=%s)", len(contexts))
+
+            # AI07 step 1: no contexts -> fallback to regular chat
+            if not contexts:
+                logger.info("AI07 fallback to chat (no RAG context)")
+                return self.chat(prompt, model=model)
+
+            # AI07 step 2: generate RAG answer when contexts exist
+            grounded_prompt = self._build_grounded_user_prompt(contexts, prompt)
+            rag_response = self.chat(
+                grounded_prompt,
+                model=model,
+                system_prompt=GROUNDING_SYSTEM_PROMPT,
+                temperature=0.0,
+            )
+
+            # AI07 step 3: weak RAG response -> fallback to regular chat
+            if self._is_weak_rag_response(rag_response):
+                logger.info("AI07 fallback to chat (weak RAG response)")
+                fallback = self.chat(prompt, model=model)
+                if fallback == _safe_reply():
+                    logger.error("AI07 fallback chat also unavailable. Root issue likely: %s", self._chat_unavailable_reason())
+                return fallback
+
+            return rag_response
+        except Exception:
+            logger.exception("AI07 RAG fallback pipeline failed, using chat fallback")
+            return self.chat(prompt, model=model)
 
     def add_documents(self, docs: List[str]) -> int:
         collection = self._get_collection()
