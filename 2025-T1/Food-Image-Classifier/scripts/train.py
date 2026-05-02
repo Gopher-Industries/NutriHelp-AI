@@ -22,8 +22,9 @@ MODEL_SAVE_PATH = '../outputs/models/food_classifier.pth'
 train_loader, test_loader = get_food101_dataloaders(batch_size=BATCH_SIZE, image_size=IMAGE_SIZE)
 
 model = FoodClassifier(num_classes=NUM_CLASSES).to(DEVICE)
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
 for epoch in range(NUM_EPOCHS):
     model.train()
@@ -49,6 +50,7 @@ for epoch in range(NUM_EPOCHS):
         loop.set_postfix(loss=loss.item(), acc=100 * correct / total)
 
     print(f"Epoch [{epoch+1}/{NUM_EPOCHS}], Loss: {running_loss:.4f}, Accuracy: {100 * correct / total:.2f}%")
+    scheduler.step()
 
 
 
