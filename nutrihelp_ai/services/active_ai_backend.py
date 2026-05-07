@@ -584,6 +584,23 @@ class GroqChromaBackend:
             system_prompt=GROUNDING_SYSTEM_PROMPT,
             temperature=0.0,
         )
+    
+    # --- AI013: Whisper voice transcription ---
+    def transcribe_audio(self, audio_file) -> str:
+        """Transcribe audio to text using Groq Whisper API."""
+        client = self._get_groq_client()
+        if client is None:
+            raise Exception("Groq client not available")
+
+        try:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-large-v3",
+                file=("recording.webm", audio_file, "audio/webm"),
+            )
+            return transcription.text
+        except Exception as exc:
+            logger.error("Groq transcription failed: %s", exc)
+            raise Exception(f"Transcription failed: {str(exc)}")
 
     def _is_weak_rag_response(self, response: str) -> bool:
         if not response:
