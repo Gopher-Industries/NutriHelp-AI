@@ -19,6 +19,11 @@ class MealPlanInput(BaseModel):
     texture: Optional[str] = "normal"
     budget: Optional[str] = "medium"
     calories_target: Optional[int] = 2000
+    preferred_cuisines: List[str] = Field(default_factory=list)
+    preferred_seasons: List[str] = Field(default_factory=list)
+    max_prep_time_minutes: Optional[int] = Field(default=None, ge=0)
+    max_total_time_minutes: Optional[int] = Field(default=None, ge=0)
+    sort_by: Optional[str] = "balanced"
 
 @router.post("/generate")
 async def generate_meal_plan(input_data: MealPlanInput) -> Dict[str, Any]:
