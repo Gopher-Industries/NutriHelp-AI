@@ -191,17 +191,22 @@ class GroqChromaBackend:
         nutrition_keywords = [
             "nutrition",
             "nutrient",
+            "nutrients",
             "calorie",
+            "calories",
             "protein",
             "carb",
             "carbs",
             "carbohydrate",
             "carbohydrates",
             "fat",
+            "fats",
             "fibre",
             "fiber",
             "vitamin",
+            "vitamins",
             "mineral",
+            "minerals",
             "iron",
             "calcium",
             "sodium",
@@ -209,36 +214,13 @@ class GroqChromaBackend:
             "salt",
             "sugar",
             "food",
+            "foods",
             "meal",
+            "meals",
             "meal plan",
             "meal planning",
             "diet",
             "dietary",
-            "vegan",
-            "vegetarian",
-            "keto",
-            "low-carb",
-            "high-protein",
-            "gluten",
-            "gluten-free",
-            "wheat",
-            "barley",
-            "rye",
-            "malt",
-            "flour",
-            "bread",
-            "pasta",
-            "noodles",
-            "oats",
-            "oatmeal",
-            "cereal",
-            "coeliac",
-            "celiac",
-            "dairy-free",
-            "lactose-free",
-            "nut-free",
-            "allergen",
-            "allergens",
             "healthy eating",
             "weight loss",
             "weight gain",
@@ -246,22 +228,122 @@ class GroqChromaBackend:
             "lunch",
             "dinner",
             "snack",
+            "snacks",
             "recipe",
+            "recipes",
             "ingredient",
+            "ingredients",
             "serving",
             "portion",
             "scan",
             "dish",
             "older adults",
             "seniors",
-            "exercise",
-            "gym",
             "hydration",
-            "water",
+            "water intake",
             "diabetes",
             "blood pressure",
+            "vegan",
+            "vegetarian",
+            "keto",
+            "low-carb",
+            "high-protein",
+            "gluten-free",
+            "dairy-free",
+            "lactose-free",
+            "nut-free",
+            "allergen",
+            "allergens",
+            "coeliac",
+            "celiac",
         ]
-        if any(keyword in clean for keyword in nutrition_keywords):
+
+        food_terms = [
+            "fruit",
+            "fruits",
+            "vegetable",
+            "vegetables",
+            "berry",
+            "berries",
+            "strawberry",
+            "strawberries",
+            "apple",
+            "apples",
+            "banana",
+            "bananas",
+            "orange",
+            "oranges",
+            "grape",
+            "grapes",
+            "avocado",
+            "avocados",
+            "broccoli",
+            "carrot",
+            "carrots",
+            "spinach",
+            "salad",
+            "salads",
+            "rice",
+            "pasta",
+            "bread",
+            "cereal",
+            "cereals",
+            "gluten",
+            "wheat",
+            "barley",
+            "rye",
+            "malt",
+            "flour",
+            "noodle",
+            "noodles",
+            "oat",
+            "oats",
+            "oatmeal",
+            "yogurt",
+            "yoghurt",
+            "milk",
+            "cheese",
+            "egg",
+            "eggs",
+            "chicken",
+            "beef",
+            "pork",
+            "fish",
+            "salmon",
+            "tuna",
+            "sushi",
+            "sashimi",
+            "tofu",
+            "beans",
+            "lentils",
+            "nuts",
+            "almonds",
+            "smoothie",
+            "smoothies",
+            "juice",
+            "water",
+            "coffee",
+            "tea",
+            "ice cream",
+            "pizza",
+            "burger",
+            "hamburger",
+        ]
+
+        lifestyle_terms = [
+            "exercise",
+            "gym",
+            "workout",
+            "workouts",
+            "walking",
+            "hydration",
+            "sleep and diet",
+        ]
+
+        def has_term(terms: List[str]) -> bool:
+            return any(re.search(rf"\b{re.escape(term)}\b", clean) for term in terms)
+
+        if has_term(nutrition_keywords) or has_term(food_terms) or has_term(lifestyle_terms):
             return True
 
         sensitivity_keywords = [
@@ -283,9 +365,23 @@ class GroqChromaBackend:
             "shellfish",
             "lactose",
         ]
-        return any(keyword in clean for keyword in sensitivity_keywords) and any(
-            allergen in clean for allergen in common_food_allergens
-        )
+        if has_term(sensitivity_keywords) and has_term(common_food_allergens):
+            return True
+
+        consumption_patterns = [
+            r"\b(should|can)\s+i\s+(eat|drink|have)\s+[\w\s-]+\b",
+            r"\b(is|are)\s+[\w\s-]+\s+(ok|okay|safe)\s+to\s+(eat|drink|have)\b",
+        ]
+        if any(re.search(pattern, clean) for pattern in consumption_patterns):
+            return True
+
+        food_health_patterns = [
+            r"\b(is|are)\s+[\w\s-]+\s+(healthy|good for (my|your|our)?\s*health)\b",
+            r"\b(benefits?|nutrition facts?|nutritional value)\s+of\s+[\w\s-]+\b",
+            r"\bwhat\s+(are|is)\s+the\s+(benefits?|nutrition|nutrients?)\s+of\s+[\w\s-]+\b",
+            r"\bhow\s+(healthy|nutritious)\s+is\s+[\w\s-]+\b",
+        ]
+        return has_term(food_terms) and any(re.search(pattern, clean) for pattern in food_health_patterns)
 
     def _chat_with_domain_guard(self, prompt: str, model: Optional[str] = None) -> str:
         if self._is_social_prompt(prompt):
@@ -641,6 +737,23 @@ class GroqChromaBackend:
             system_prompt=GROUNDING_SYSTEM_PROMPT,
             temperature=0.0,
         )
+    
+    # --- AI013: Whisper voice transcription ---
+    def transcribe_audio(self, audio_file) -> str:
+        """Transcribe audio to text using Groq Whisper API."""
+        client = self._get_groq_client()
+        if client is None:
+            raise Exception("Groq client not available")
+
+        try:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-large-v3",
+                file=("recording.webm", audio_file, "audio/webm"),
+            )
+            return transcription.text
+        except Exception as exc:
+            logger.error("Groq transcription failed: %s", exc)
+            raise Exception(f"Transcription failed: {str(exc)}")
 
     def _is_weak_rag_response(self, response: str) -> bool:
         if not response:

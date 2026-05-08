@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
+from io import BytesIO
 from pydantic import BaseModel, Field
 from datetime import datetime
 from nutrihelp_ai.services.active_ai_backend import GroqChromaBackend
@@ -69,4 +70,29 @@ def sync_chat(request: ChatRequest):
                 detail=str(e),
                 timestamp=datetime.now().isoformat()
             ).dict()
+        )
+    
+# --- AI013: Transcribe-only endpoint ---
+@router.post("/transcribe")
+async def transcribe_audio(audio: UploadFile = File(...)):
+    """Converts audio to text. That's it."""
+    try:
+        audio_bytes = await audio.read()
+        audio_buffer = BytesIO(audio_bytes)
+        transcript = agent.transcribe_audio(audio_buffer)
+
+        if not transcript or not transcript.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Could not transcribe audio.",
+            )
+
+        return {"transcript": transcript}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Transcription error: {str(e)}",
         )
