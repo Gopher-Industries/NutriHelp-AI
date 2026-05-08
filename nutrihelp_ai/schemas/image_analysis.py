@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -36,6 +36,17 @@ class NutritionEstimate(BaseModel):
     cuisine: Optional[str] = None
     estimated_calories: Optional[int] = Field(default=None, ge=0)
     serving_description: Optional[str] = None
+    protein_g: Optional[float] = Field(default=None, ge=0)
+    carbs_g: Optional[float] = Field(default=None, ge=0)
+    fat_g: Optional[float] = Field(default=None, ge=0)
+    fibre_g: Optional[float] = Field(default=None, ge=0)
+    sugar_g: Optional[float] = Field(default=None, ge=0)
+    sodium_mg: Optional[float] = Field(default=None, ge=0)
+    micronutrients: Dict[str, float] = Field(default_factory=dict)
+    vitamins: List[str] = Field(default_factory=list)
+    minerals: List[str] = Field(default_factory=list)
+    allergens: List[str] = Field(default_factory=list)
+    food_categories: List[str] = Field(default_factory=list)
     source: str = "unavailable"
     available: bool = False
 
