@@ -197,6 +197,8 @@ class GroqChromaBackend:
             "protein",
             "carb",
             "carbs",
+            "carbohydrate",
+            "carbohydrates",
             "fat",
             "fats",
             "fibre",
@@ -209,10 +211,14 @@ class GroqChromaBackend:
             "calcium",
             "sodium",
             "cholesterol",
+            "salt",
+            "sugar",
             "food",
             "foods",
             "meal",
             "meals",
+            "meal plan",
+            "meal planning",
             "diet",
             "dietary",
             "healthy eating",
@@ -237,6 +243,19 @@ class GroqChromaBackend:
             "water intake",
             "diabetes",
             "blood pressure",
+            "vegan",
+            "vegetarian",
+            "keto",
+            "low-carb",
+            "high-protein",
+            "gluten-free",
+            "dairy-free",
+            "lactose-free",
+            "nut-free",
+            "allergen",
+            "allergens",
+            "coeliac",
+            "celiac",
         ]
 
         food_terms = [
@@ -267,6 +286,16 @@ class GroqChromaBackend:
             "rice",
             "pasta",
             "bread",
+            "cereal",
+            "cereals",
+            "gluten",
+            "wheat",
+            "barley",
+            "rye",
+            "malt",
+            "flour",
+            "noodle",
+            "noodles",
             "oat",
             "oats",
             "oatmeal",
@@ -315,6 +344,28 @@ class GroqChromaBackend:
             return any(re.search(rf"\b{re.escape(term)}\b", clean) for term in terms)
 
         if has_term(nutrition_keywords) or has_term(food_terms) or has_term(lifestyle_terms):
+            return True
+
+        sensitivity_keywords = [
+            "allergy",
+            "allergies",
+            "allergic",
+            "intolerance",
+            "intolerant",
+        ]
+        common_food_allergens = [
+            "peanut",
+            "nut",
+            "milk",
+            "dairy",
+            "egg",
+            "soy",
+            "sesame",
+            "fish",
+            "shellfish",
+            "lactose",
+        ]
+        if has_term(sensitivity_keywords) and has_term(common_food_allergens):
             return True
 
         consumption_patterns = [
