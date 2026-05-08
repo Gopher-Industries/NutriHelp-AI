@@ -22,6 +22,13 @@ REJECTED_SUGGESTION = (
 )
 REJECTED_NUTRITION_SOURCE = "withheld_rejected_image"
 
+def get_confidence_tier(confidence: float) -> str:
+    if confidence >= 0.75:
+        return "high"
+    elif confidence >= 0.50:
+        return "medium"
+    else:
+        return "low"
 
 class ImagePipelineService:
     def __init__(self):
@@ -60,6 +67,11 @@ class ImagePipelineService:
         topk_items = list(prediction.get("topk", []))
         label = prediction.get("label")
         confidence = float(prediction.get("confidence", 0.0))
+
+        top3_predictions = [
+            {"class": item["label"], "confidence": item["score"]}
+            for item in topk_items[:3]
+        ]
 
         prediction_rejected = bool(quality.get("should_reject_prediction", False))
         public_label = None if prediction_rejected else label
@@ -112,4 +124,8 @@ class ImagePipelineService:
             "error": None,
             "nutrition": nutrition,
             "recommendation": recommendation,
+            "confidence_tier": get_confidence_tier(public_confidence),
+            "retake_needed": is_unclear,
+            "retake_reason": unclear_reason if is_unclear else None,
+            "top3_predictions": top3_predictions if not prediction_rejected else [],
         }
