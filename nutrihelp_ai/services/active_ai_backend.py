@@ -206,6 +206,17 @@ class GroqChromaBackend:
             "food",
             "meal",
             "diet",
+            "dietary",
+            "gluten",
+            "gluten-free",
+            "wheat",
+            "barley",
+            "rye",
+            "oats",
+            "oatmeal",
+            "cereal",
+            "coeliac",
+            "celiac",
             "healthy eating",
             "weight loss",
             "weight gain",
@@ -228,7 +239,31 @@ class GroqChromaBackend:
             "diabetes",
             "blood pressure",
         ]
-        return any(keyword in clean for keyword in nutrition_keywords)
+        if any(keyword in clean for keyword in nutrition_keywords):
+            return True
+
+        sensitivity_keywords = [
+            "allergy",
+            "allergies",
+            "allergic",
+            "intolerance",
+            "intolerant",
+        ]
+        common_food_allergens = [
+            "peanut",
+            "nut",
+            "milk",
+            "dairy",
+            "egg",
+            "soy",
+            "sesame",
+            "fish",
+            "shellfish",
+            "lactose",
+        ]
+        return any(keyword in clean for keyword in sensitivity_keywords) and any(
+            allergen in clean for allergen in common_food_allergens
+        )
 
     def _chat_with_domain_guard(self, prompt: str, model: Optional[str] = None) -> str:
         if self._is_social_prompt(prompt):
