@@ -98,6 +98,11 @@ SORT_KEYS = {
     "low_calories",
 }
 
+SORT_ALIASES = {
+    "high_fiber": "high_fibre",
+    "low_calorie": "low_calories",
+}
+
 
 def detect_allergens(text: str) -> List[str]:
     if not text:
@@ -559,6 +564,7 @@ def plan(user, all_meals):
     max_prep_time_minutes = _coerce_optional_int(user.get("max_prep_time_minutes"))
     max_total_time_minutes = _coerce_optional_int(user.get("max_total_time_minutes"))
     sort_by = str(user.get("sort_by") or "balanced").strip().lower()
+    sort_by = SORT_ALIASES.get(sort_by, sort_by)
     if sort_by not in SORT_KEYS:
         sort_by = "balanced"
 
@@ -652,12 +658,6 @@ def plan(user, all_meals):
             preferred_seasons=preferred_seasons,
             sort_by=sort_by,
         )
-
-        if dinner is None and plan_obj["lunch"] is not None:
-            lunch_item = plan_obj["lunch"]
-            lunch_calories = int(lunch_item.get("calories", 0) or 0)
-            if lunch_calories <= remaining_calories:
-                dinner = lunch_item
 
     remaining_calories = _apply_selection(plan_obj, "dinner", dinner, remaining_calories, used_ids, used_categories)
 
