@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import UploadFile
 
+from nutrihelp_ai.services.food_presence import FoodPresenceService
 from nutrihelp_ai.services.image_quality import ImageQualityService, InvalidImageError
 from nutrihelp_ai.services.multi_image_classifier.scripts.training.predict import Predictor
 import logging
@@ -9,14 +10,31 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOPK = 5
-UNCLEAR_THRESHOLD = 0.25
+CONFIRMATION_THRESHOLD = 0.99
+AMBIGUITY_MARGIN = 0.15
+NON_FOOD_REJECT_THRESHOLD = 0.25
 UNCLEAR_SUGGESTION = "Please upload a clearer image."
+
+
+def get_confidence_tier(confidence: float) -> str:
+    if confidence >= CONFIRMATION_THRESHOLD:
+        return "high"
+    if confidence >= 0.50:
+        return "medium"
+    return "low"
+
+
+def get_second_score(topk_items: List[Dict[str, Any]]) -> float:
+    if len(topk_items) < 2:
+        return 0.0
+    return float(topk_items[1].get("score", 0.0))
 
 
 class MultiImagePipelineService:
     def __init__(self):
         self.predictor = None
         self._predictor_error: Optional[str] = None
+        self.food_presence_service = FoodPresenceService()
         self.quality_service = ImageQualityService()
 
     def _get_predictor(self) -> Predictor:
@@ -49,6 +67,38 @@ class MultiImagePipelineService:
 
                 image_bytes = await file.read()
                 quality = self.quality_service.analyze(image_bytes)
+                food_presence = self.food_presence_service.analyze(image_bytes)
+                food_presence_enabled = bool(food_presence.get("enabled"))
+                food_probability = float(food_presence.get("food_probability", 1.0))
+                hard_non_food = food_presence_enabled and food_probability < NON_FOOD_REJECT_THRESHOLD
+                food_presence_unclear = (
+                    food_presence_enabled
+                    and food_probability < float(food_presence.get("threshold", 0.0))
+                )
+                if hard_non_food:
+                    reason = str(food_presence.get("reason") or "Image does not appear to contain food.")
+                    quality_payload = self.quality_service.response_payload(quality)
+                    quality_payload["issues"] = list(quality_payload.get("issues", [])) + [reason]
+                    results.append(
+                        {
+                            "label": None,
+                            "confidence": 0.0,
+                            "confidence_tier": "low",
+                            "food_probability": food_presence.get("food_probability"),
+                            "matches": [],
+                            "topk": [],
+                            "top3_predictions": [],
+                            "is_unclear": True,
+                            "unclear_reason": reason,
+                            "retake_needed": True,
+                            "retake_reason": reason,
+                            "suggestion": UNCLEAR_SUGGESTION,
+                            "quality": quality_payload,
+                            "error": None,
+                        }
+                    )
+                    continue
+
                 pred = predictor.predict_from_bytes(image_bytes, safe_topk)
 
                 topk_items = [
@@ -68,25 +118,47 @@ class MultiImagePipelineService:
 
                 label = topk_items[0]["label"] if topk_items else None
                 confidence = float(topk_items[0]["score"]) if topk_items else 0.0
+                top3_predictions = [
+                    {"class": item["label"], "confidence": item["score"]}
+                    for item in topk_items[:3]
+                ]
                 quality_unclear = bool(quality.get("should_mark_unclear", False))
-                low_confidence = confidence < UNCLEAR_THRESHOLD
-                is_unclear = quality_unclear or low_confidence
+                low_confidence = confidence < CONFIRMATION_THRESHOLD
+                second_score = get_second_score(topk_items)
+                ambiguous_prediction = (
+                    second_score > 0 and (confidence - second_score) < AMBIGUITY_MARGIN
+                )
+                is_unclear = quality_unclear or food_presence_unclear or low_confidence or ambiguous_prediction
 
                 reasons: List[str] = []
+                if food_presence_unclear:
+                    reasons.append(
+                        str(food_presence.get("reason") or "Food/non-food gate could not confidently confirm this image contains food.")
+                    )
                 if low_confidence:
                     reasons.append(
-                        f"Top-1 confidence {confidence:.2f} below threshold {UNCLEAR_THRESHOLD:.2f}."
+                        f"Top-1 confidence {confidence:.2f} below confirmation threshold {CONFIRMATION_THRESHOLD:.2f}."
+                    )
+                if ambiguous_prediction:
+                    reasons.append(
+                        f"Top predictions are close together; margin {confidence - second_score:.2f} below {AMBIGUITY_MARGIN:.2f}."
                     )
                 reasons.extend(quality.get("issues", []))
+                unclear_reason = " ".join(reasons).strip()
 
                 results.append(
                     {
                         "label": label,
                         "confidence": confidence,
+                        "confidence_tier": get_confidence_tier(confidence),
+                        "food_probability": food_presence.get("food_probability"),
                         "matches": matches,
                         "topk": topk_items,
+                        "top3_predictions": top3_predictions,
                         "is_unclear": is_unclear,
-                        "unclear_reason": " ".join(reasons).strip(),
+                        "unclear_reason": unclear_reason,
+                        "retake_needed": is_unclear,
+                        "retake_reason": unclear_reason if is_unclear else None,
                         "suggestion": UNCLEAR_SUGGESTION if is_unclear else "",
                         "quality": self.quality_service.response_payload(quality),
                         "error": None,
@@ -100,14 +172,20 @@ class MultiImagePipelineService:
                     e,
                     exc_info=True,
                 )
+                error_reason = str(e) if isinstance(e, InvalidImageError) else "Processing error occurred."
                 results.append(
                     {
                         "label": None,
                         "confidence": 0.0,
+                        "confidence_tier": "low",
+                        "food_probability": None,
                         "matches": [],
                         "topk": [],
+                        "top3_predictions": [],
                         "is_unclear": True,
-                        "unclear_reason": str(e) if isinstance(e, InvalidImageError) else "Processing error occurred.",
+                        "unclear_reason": error_reason,
+                        "retake_needed": True,
+                        "retake_reason": error_reason,
                         "suggestion": UNCLEAR_SUGGESTION,
                         "quality": self.quality_service.fallback_payload([str(e)]),
                         "error": "Failed to process this image",

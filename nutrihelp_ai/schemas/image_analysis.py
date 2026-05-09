@@ -8,6 +8,11 @@ class LabelScore(BaseModel):
     score: float = Field(..., ge=0.0, le=1.0)
 
 
+class Top3Prediction(BaseModel):
+    class_: str = Field(..., alias="class")
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+
 class ImageQuality(BaseModel):
     width: int = Field(..., ge=0)
     height: int = Field(..., ge=0)
@@ -21,10 +26,15 @@ class ImageQuality(BaseModel):
 class BaseImagePredictionResponse(BaseModel):
     label: Optional[str] = None
     confidence: float = Field(0.0, ge=0.0, le=1.0)
+    confidence_tier: Optional[str] = None
+    food_probability: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     matches: List[LabelScore] = Field(default_factory=list)
     topk: List[LabelScore] = Field(default_factory=list)
+    top3_predictions: List[Top3Prediction] = Field(default_factory=list)
     is_unclear: bool = False
     unclear_reason: str = ""
+    retake_needed: bool = False
+    retake_reason: Optional[str] = None
     suggestion: str = ""
     quality: ImageQuality
     error: Optional[str] = None

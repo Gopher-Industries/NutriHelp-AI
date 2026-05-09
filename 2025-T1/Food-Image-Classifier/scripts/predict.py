@@ -3,6 +3,7 @@ from torchvision import transforms
 from torchvision.datasets import Food101
 from PIL import Image
 import json
+import numpy as np
 import os
 
 from model import FoodClassifier
@@ -27,20 +28,82 @@ model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.to(DEVICE)
 model.eval()
 
+def get_confidence_tier(confidence):
+    if confidence >= 0.75:
+        return "high"
+    elif confidence >= 0.50:
+        return "medium"
+    else:
+        return "low"
+
+def check_image_quality(image_path):
+    try:
+        image = Image.open(image_path).convert('RGB')
+    except Exception as e:
+        return {"is_low_quality": True, "issues": [f"could not open image: {e}"]}
+        
+    width, height = image.size
+    gray = image.convert('L')
+    gray_array = np.array(gray, dtype=float)
+    gy, gx = np.gradient(gray_array)
+    laplacian_var = np.var(gx + gy)
+    is_blurry = laplacian_var < 40  # lowered — phone photos score ~49
+    brightness = np.mean(gray_array)
+    is_too_dark = brightness < 40
+    is_too_bright = brightness > 220
+    is_too_small = width < 100 or height < 100
+
+    issues = []
+    if is_blurry:
+        issues.append("image is blurry")
+    if is_too_dark:
+        issues.append("image is too dark")
+    if is_too_bright:
+        issues.append("image is too bright/washed out")
+    if is_too_small:
+        issues.append("image resolution is too low")
+
+    return {
+        "is_low_quality": len(issues) > 0,
+        "issues": issues
+    }
+
 def predict_image(image_path):
+    quality = check_image_quality(image_path)
+    if quality["is_low_quality"]:
+        return {
+            "retake_needed": True,
+            "reason": "Please retake the image: " + ", ".join(quality["issues"]),
+            "predicted_class": None,
+            "confidence": None,
+            "confidence_tier": None,
+            "top3_predictions": []
+        }
+        
     image = Image.open(image_path).convert('RGB')
     image = transform(image).unsqueeze(0).to(DEVICE)
 
     with torch.no_grad():
         outputs = model(image)
         probs = torch.softmax(outputs, dim=1)
-        top_prob, top_class = torch.max(probs, 1)
+        # top_prob, top_class = torch.max(probs, 1)
 
-    food_name = CLASS_NAMES[top_class.item()]
+    top3_probs, top3_classes = torch.topk(probs, 3, dim=1)
+    top3 = [
+        {"class": CLASS_NAMES[top3_classes[0][i].item()],
+         "confidence": round(top3_probs[0][i].item(), 4)}
+        for i in range(3)
+    ]
+
+    best = top3[0]
 
     result = {
-        "predicted_class": food_name,
-        "confidence": round(top_prob.item(), 4)
+        "retake_needed":    False,
+        "reason":           None,
+        "predicted_class":  best["class"],
+        "confidence":       best["confidence"],
+        "confidence_tier":  get_confidence_tier(best["confidence"]),
+        "top3_predictions": top3
     }
 
     return result
