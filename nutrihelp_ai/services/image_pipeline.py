@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import UploadFile
 
 from nutrihelp_ai.services.Food_Image_Classifier.scripts.predict import Predictor
+from nutrihelp_ai.services.food_presence import FoodPresenceService
 from nutrihelp_ai.services.image_quality import ImageQualityService, InvalidImageError
 from nutrihelp_ai.services.nutrition_lookup import NutritionLookupService
 
@@ -41,6 +42,7 @@ class ImagePipelineService:
     def __init__(self):
         self.predictor = None
         self._predictor_error: Optional[str] = None
+        self.food_presence_service = FoodPresenceService()
         self.quality_service = ImageQualityService()
         self.nutrition_lookup = NutritionLookupService()
 
@@ -68,6 +70,34 @@ class ImagePipelineService:
 
         image_bytes = await file.read()
         quality = self.quality_service.analyze(image_bytes)
+        food_presence = self.food_presence_service.analyze(image_bytes)
+        if food_presence.get("enabled") and not food_presence.get("is_food", True):
+            reason = str(food_presence.get("reason") or "Image does not appear to contain food.")
+            quality_payload = self.quality_service.response_payload(quality)
+            quality_payload["issues"] = list(quality_payload.get("issues", [])) + [reason]
+            nutrition = self.nutrition_lookup.unavailable(None, source=REJECTED_NUTRITION_SOURCE)
+            return {
+                "label": None,
+                "confidence": 0.0,
+                "confidence_tier": "low",
+                "food_probability": food_presence.get("food_probability"),
+                "matches": [],
+                "topk": [],
+                "top3_predictions": [],
+                "is_unclear": True,
+                "unclear_reason": reason,
+                "retake_needed": True,
+                "retake_reason": reason,
+                "suggestion": REJECTED_SUGGESTION,
+                "quality": quality_payload,
+                "error": None,
+                "nutrition": nutrition,
+                "recommendation": self.nutrition_lookup.build_recommendation(
+                    nutrition,
+                    is_unclear=True,
+                ),
+            }
+
         predictor = self._get_predictor()
         prediction = predictor.predict_from_bytes(image_bytes, topk=topk)
 
@@ -128,6 +158,7 @@ class ImagePipelineService:
         return {
             "label": public_label,
             "confidence": public_confidence,
+            "food_probability": food_presence.get("food_probability"),
             "matches": matches,
             "topk": public_topk,
             "is_unclear": is_unclear,

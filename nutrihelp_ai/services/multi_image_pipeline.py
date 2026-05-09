@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import UploadFile
 
+from nutrihelp_ai.services.food_presence import FoodPresenceService
 from nutrihelp_ai.services.image_quality import ImageQualityService, InvalidImageError
 from nutrihelp_ai.services.multi_image_classifier.scripts.training.predict import Predictor
 import logging
@@ -32,6 +33,7 @@ class MultiImagePipelineService:
     def __init__(self):
         self.predictor = None
         self._predictor_error: Optional[str] = None
+        self.food_presence_service = FoodPresenceService()
         self.quality_service = ImageQualityService()
 
     def _get_predictor(self) -> Predictor:
@@ -64,6 +66,31 @@ class MultiImagePipelineService:
 
                 image_bytes = await file.read()
                 quality = self.quality_service.analyze(image_bytes)
+                food_presence = self.food_presence_service.analyze(image_bytes)
+                if food_presence.get("enabled") and not food_presence.get("is_food", True):
+                    reason = str(food_presence.get("reason") or "Image does not appear to contain food.")
+                    quality_payload = self.quality_service.response_payload(quality)
+                    quality_payload["issues"] = list(quality_payload.get("issues", [])) + [reason]
+                    results.append(
+                        {
+                            "label": None,
+                            "confidence": 0.0,
+                            "confidence_tier": "low",
+                            "food_probability": food_presence.get("food_probability"),
+                            "matches": [],
+                            "topk": [],
+                            "top3_predictions": [],
+                            "is_unclear": True,
+                            "unclear_reason": reason,
+                            "retake_needed": True,
+                            "retake_reason": reason,
+                            "suggestion": UNCLEAR_SUGGESTION,
+                            "quality": quality_payload,
+                            "error": None,
+                        }
+                    )
+                    continue
+
                 pred = predictor.predict_from_bytes(image_bytes, safe_topk)
 
                 topk_items = [
@@ -112,6 +139,7 @@ class MultiImagePipelineService:
                         "label": label,
                         "confidence": confidence,
                         "confidence_tier": get_confidence_tier(confidence),
+                        "food_probability": food_presence.get("food_probability"),
                         "matches": matches,
                         "topk": topk_items,
                         "top3_predictions": top3_predictions,
@@ -138,6 +166,7 @@ class MultiImagePipelineService:
                         "label": None,
                         "confidence": 0.0,
                         "confidence_tier": "low",
+                        "food_probability": None,
                         "matches": [],
                         "topk": [],
                         "top3_predictions": [],

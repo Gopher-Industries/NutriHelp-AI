@@ -27,6 +27,7 @@ class BaseImagePredictionResponse(BaseModel):
     label: Optional[str] = None
     confidence: float = Field(0.0, ge=0.0, le=1.0)
     confidence_tier: Optional[str] = None
+    food_probability: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     matches: List[LabelScore] = Field(default_factory=list)
     topk: List[LabelScore] = Field(default_factory=list)
     top3_predictions: List[Top3Prediction] = Field(default_factory=list)
