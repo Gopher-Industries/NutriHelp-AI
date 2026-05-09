@@ -9,16 +9,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOPK = 5
-UNCLEAR_THRESHOLD = 0.25
+CONFIRMATION_THRESHOLD = 0.90
+AMBIGUITY_MARGIN = 0.15
 UNCLEAR_SUGGESTION = "Please upload a clearer image."
 
 
 def get_confidence_tier(confidence: float) -> str:
-    if confidence >= 0.75:
+    if confidence >= CONFIRMATION_THRESHOLD:
         return "high"
     if confidence >= 0.50:
         return "medium"
     return "low"
+
+
+def get_second_score(topk_items: List[Dict[str, Any]]) -> float:
+    if len(topk_items) < 2:
+        return 0.0
+    return float(topk_items[1].get("score", 0.0))
 
 
 class MultiImagePipelineService:
@@ -81,13 +88,21 @@ class MultiImagePipelineService:
                     for item in topk_items[:3]
                 ]
                 quality_unclear = bool(quality.get("should_mark_unclear", False))
-                low_confidence = confidence < UNCLEAR_THRESHOLD
-                is_unclear = quality_unclear or low_confidence
+                low_confidence = confidence < CONFIRMATION_THRESHOLD
+                second_score = get_second_score(topk_items)
+                ambiguous_prediction = (
+                    second_score > 0 and (confidence - second_score) < AMBIGUITY_MARGIN
+                )
+                is_unclear = quality_unclear or low_confidence or ambiguous_prediction
 
                 reasons: List[str] = []
                 if low_confidence:
                     reasons.append(
-                        f"Top-1 confidence {confidence:.2f} below threshold {UNCLEAR_THRESHOLD:.2f}."
+                        f"Top-1 confidence {confidence:.2f} below confirmation threshold {CONFIRMATION_THRESHOLD:.2f}."
+                    )
+                if ambiguous_prediction:
+                    reasons.append(
+                        f"Top predictions are close together; margin {confidence - second_score:.2f} below {AMBIGUITY_MARGIN:.2f}."
                     )
                 reasons.extend(quality.get("issues", []))
                 unclear_reason = " ".join(reasons).strip()
