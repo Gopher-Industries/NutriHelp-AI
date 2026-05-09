@@ -13,6 +13,14 @@ UNCLEAR_THRESHOLD = 0.25
 UNCLEAR_SUGGESTION = "Please upload a clearer image."
 
 
+def get_confidence_tier(confidence: float) -> str:
+    if confidence >= 0.75:
+        return "high"
+    if confidence >= 0.50:
+        return "medium"
+    return "low"
+
+
 class MultiImagePipelineService:
     def __init__(self):
         self.predictor = None
@@ -68,6 +76,10 @@ class MultiImagePipelineService:
 
                 label = topk_items[0]["label"] if topk_items else None
                 confidence = float(topk_items[0]["score"]) if topk_items else 0.0
+                top3_predictions = [
+                    {"class": item["label"], "confidence": item["score"]}
+                    for item in topk_items[:3]
+                ]
                 quality_unclear = bool(quality.get("should_mark_unclear", False))
                 low_confidence = confidence < UNCLEAR_THRESHOLD
                 is_unclear = quality_unclear or low_confidence
@@ -78,15 +90,20 @@ class MultiImagePipelineService:
                         f"Top-1 confidence {confidence:.2f} below threshold {UNCLEAR_THRESHOLD:.2f}."
                     )
                 reasons.extend(quality.get("issues", []))
+                unclear_reason = " ".join(reasons).strip()
 
                 results.append(
                     {
                         "label": label,
                         "confidence": confidence,
+                        "confidence_tier": get_confidence_tier(confidence),
                         "matches": matches,
                         "topk": topk_items,
+                        "top3_predictions": top3_predictions,
                         "is_unclear": is_unclear,
-                        "unclear_reason": " ".join(reasons).strip(),
+                        "unclear_reason": unclear_reason,
+                        "retake_needed": is_unclear,
+                        "retake_reason": unclear_reason if is_unclear else None,
                         "suggestion": UNCLEAR_SUGGESTION if is_unclear else "",
                         "quality": self.quality_service.response_payload(quality),
                         "error": None,
@@ -100,14 +117,19 @@ class MultiImagePipelineService:
                     e,
                     exc_info=True,
                 )
+                error_reason = str(e) if isinstance(e, InvalidImageError) else "Processing error occurred."
                 results.append(
                     {
                         "label": None,
                         "confidence": 0.0,
+                        "confidence_tier": "low",
                         "matches": [],
                         "topk": [],
+                        "top3_predictions": [],
                         "is_unclear": True,
-                        "unclear_reason": str(e) if isinstance(e, InvalidImageError) else "Processing error occurred.",
+                        "unclear_reason": error_reason,
+                        "retake_needed": True,
+                        "retake_reason": error_reason,
                         "suggestion": UNCLEAR_SUGGESTION,
                         "quality": self.quality_service.fallback_payload([str(e)]),
                         "error": "Failed to process this image",
