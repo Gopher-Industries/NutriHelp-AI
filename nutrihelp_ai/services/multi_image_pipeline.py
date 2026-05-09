@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_TOPK = 5
 CONFIRMATION_THRESHOLD = 0.99
 AMBIGUITY_MARGIN = 0.15
+NON_FOOD_REJECT_THRESHOLD = 0.25
 UNCLEAR_SUGGESTION = "Please upload a clearer image."
 
 
@@ -67,7 +68,14 @@ class MultiImagePipelineService:
                 image_bytes = await file.read()
                 quality = self.quality_service.analyze(image_bytes)
                 food_presence = self.food_presence_service.analyze(image_bytes)
-                if food_presence.get("enabled") and not food_presence.get("is_food", True):
+                food_presence_enabled = bool(food_presence.get("enabled"))
+                food_probability = float(food_presence.get("food_probability", 1.0))
+                hard_non_food = food_presence_enabled and food_probability < NON_FOOD_REJECT_THRESHOLD
+                food_presence_unclear = (
+                    food_presence_enabled
+                    and food_probability < float(food_presence.get("threshold", 0.0))
+                )
+                if hard_non_food:
                     reason = str(food_presence.get("reason") or "Image does not appear to contain food.")
                     quality_payload = self.quality_service.response_payload(quality)
                     quality_payload["issues"] = list(quality_payload.get("issues", [])) + [reason]
@@ -120,9 +128,13 @@ class MultiImagePipelineService:
                 ambiguous_prediction = (
                     second_score > 0 and (confidence - second_score) < AMBIGUITY_MARGIN
                 )
-                is_unclear = quality_unclear or low_confidence or ambiguous_prediction
+                is_unclear = quality_unclear or food_presence_unclear or low_confidence or ambiguous_prediction
 
                 reasons: List[str] = []
+                if food_presence_unclear:
+                    reasons.append(
+                        str(food_presence.get("reason") or "Food/non-food gate could not confidently confirm this image contains food.")
+                    )
                 if low_confidence:
                     reasons.append(
                         f"Top-1 confidence {confidence:.2f} below confirmation threshold {CONFIRMATION_THRESHOLD:.2f}."
