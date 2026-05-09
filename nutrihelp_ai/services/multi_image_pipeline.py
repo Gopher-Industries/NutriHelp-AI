@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOPK = 5
-CONFIRMATION_THRESHOLD = 0.90
+CONFIRMATION_THRESHOLD = 0.99
 AMBIGUITY_MARGIN = 0.15
 UNCLEAR_SUGGESTION = "Please upload a clearer image."
 

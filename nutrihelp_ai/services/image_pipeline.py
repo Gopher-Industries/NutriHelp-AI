@@ -14,7 +14,7 @@ DEFAULT_TOPK = 5
 # The classifier is closed-set: every image is forced into one of the known food
 # classes. Keep nutrition enrichment conservative so non-food or ambiguous images
 # do not look like confirmed meals.
-CONFIRMATION_THRESHOLD = 0.90
+CONFIRMATION_THRESHOLD = 0.99
 AMBIGUITY_MARGIN = 0.15
 UNCLEAR_SUGGESTION = "Please upload a clearer food image or confirm the dish manually."
 UNCLEAR_NUTRITION_SOURCE = "withheld_unclear_prediction"
