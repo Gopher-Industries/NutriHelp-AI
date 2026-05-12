@@ -13,9 +13,9 @@ class ChatRequest(BaseModel):
     query: str = Field(
         ...,
         min_length=1,
-        max_length=2000,           
+        max_length=6000,
         strip_whitespace=True,
-        description="User's chat message or question"
+        description="User's chat message or question, optionally enriched with trusted app profile context"
     )
 
 class ChatResponse(BaseModel):
