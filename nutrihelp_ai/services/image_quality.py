@@ -15,7 +15,8 @@ MIN_BRIGHTNESS = 35.0
 MAX_BRIGHTNESS = 235.0
 MIN_CONTRAST = 18.0
 MIN_SHARPNESS = 10.0
-MAX_FACE_AREA_RATIO = 0.08
+MAX_FACE_AREA_RATIO = 0.22
+PEOPLE_DETECTION_MIN_RATIO = 0.045
 SCREENSHOT_EDGE_RATIO = 0.18
 SCREENSHOT_LOW_SATURATION_RATIO = 0.45
 CARTOON_FLAT_REGION_RATIO = 0.58
@@ -95,8 +96,8 @@ class ImageQualityService:
         faces = classifier.detectMultiScale(
             gray,
             scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(60, 60),
+            minNeighbors=7,
+            minSize=(90, 90),
         )
         if len(faces) == 0:
             return False
@@ -104,6 +105,41 @@ class ImageQualityService:
         image_area = max(1, image.size[0] * image.size[1])
         largest_face_area = max(int(width) * int(height) for _, _, width, height in faces)
         return (largest_face_area / image_area) >= MAX_FACE_AREA_RATIO
+
+    def _contains_people_scene(self, image: Image.Image) -> bool:
+        if cv2 is None:
+            return False
+
+        rgb = np.array(image)
+        gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+        image_area = max(1, image.size[0] * image.size[1])
+        cascade_names = [
+            "haarcascade_frontalface_default.xml",
+            "haarcascade_profileface.xml",
+            "haarcascade_upperbody.xml",
+            "haarcascade_fullbody.xml",
+        ]
+
+        for cascade_name in cascade_names:
+            cascade_path = getattr(cv2.data, "haarcascades", "") + cascade_name
+            classifier = cv2.CascadeClassifier(cascade_path)
+            if classifier.empty():
+                continue
+
+            detections = classifier.detectMultiScale(
+                gray,
+                scaleFactor=1.08,
+                minNeighbors=5,
+                minSize=(48, 48),
+            )
+            if len(detections) == 0:
+                continue
+
+            largest_area = max(int(width) * int(height) for _, _, width, height in detections)
+            if (largest_area / image_area) >= PEOPLE_DETECTION_MIN_RATIO:
+                return True
+
+        return False
 
     def analyze(self, image_bytes: bytes) -> Dict[str, object]:
         if not image_bytes:
@@ -123,6 +159,7 @@ class ImageQualityService:
         edges = gray.filter(ImageFilter.FIND_EDGES)
         sharpness = round(float(ImageStat.Stat(edges).mean[0]), 2)
         contains_large_face = self._contains_large_face(image)
+        contains_people_scene = self._contains_people_scene(image)
         looks_like_screenshot = self._looks_like_screenshot(image, gray_array)
         looks_like_cartoon_or_portrait = self._looks_like_cartoon_or_portrait(image, gray_array)
 
@@ -147,9 +184,7 @@ class ImageQualityService:
         blocking_quality_issue = (
             min(width, height) < MIN_DIMENSION
             or sharpness < MIN_SHARPNESS
-            or contains_large_face
             or looks_like_screenshot
-            or looks_like_cartoon_or_portrait
         )
 
         return {
@@ -161,7 +196,8 @@ class ImageQualityService:
             "passed": not blocking_quality_issue,
             "issues": issues,
             "should_mark_unclear": blocking_quality_issue,
-            "should_reject_prediction": contains_large_face or looks_like_screenshot or looks_like_cartoon_or_portrait,
+            "should_reject_prediction": looks_like_screenshot,
+            "contains_people_scene": contains_people_scene,
         }
 
     def response_payload(self, analysis: Dict[str, object]) -> Dict[str, object]:
