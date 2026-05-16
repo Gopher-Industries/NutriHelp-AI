@@ -15,9 +15,10 @@ DEFAULT_TOPK = 5
 # The classifier is closed-set: every image is forced into one of the known food
 # classes. Keep nutrition enrichment conservative so non-food or ambiguous images
 # do not look like confirmed meals.
-CONFIRMATION_THRESHOLD = 0.99
+CONFIRMATION_THRESHOLD = 0.85
 AMBIGUITY_MARGIN = 0.15
-NON_FOOD_REJECT_THRESHOLD = 0.25
+NON_FOOD_REJECT_THRESHOLD = 0.12
+FOOD_PRESENCE_REVIEW_THRESHOLD = 0.20
 UNCLEAR_SUGGESTION = "Please upload a clearer food image or confirm the dish manually."
 UNCLEAR_NUTRITION_SOURCE = "withheld_unclear_prediction"
 REJECTED_SUGGESTION = (
@@ -74,13 +75,29 @@ class ImagePipelineService:
         food_presence = self.food_presence_service.analyze(image_bytes)
         food_presence_enabled = bool(food_presence.get("enabled"))
         food_probability = float(food_presence.get("food_probability", 1.0))
-        hard_non_food = food_presence_enabled and food_probability < NON_FOOD_REJECT_THRESHOLD
+        people_scene_non_food = (
+            food_presence_enabled
+            and food_probability < FOOD_PRESENCE_REVIEW_THRESHOLD
+            and bool(quality.get("contains_people_scene", False))
+        )
+        hard_non_food = (
+            food_presence_enabled
+            and (
+                food_probability < NON_FOOD_REJECT_THRESHOLD
+                or people_scene_non_food
+            )
+        )
         food_presence_unclear = (
             food_presence_enabled
-            and food_probability < float(food_presence.get("threshold", 0.0))
+            and food_probability < FOOD_PRESENCE_REVIEW_THRESHOLD
         )
         if hard_non_food:
-            reason = str(food_presence.get("reason") or "Image does not appear to contain food.")
+            reason = str(
+                food_presence.get("reason")
+                or "Image does not appear to contain food."
+            )
+            if people_scene_non_food:
+                reason = "Image appears to show people or a non-food scene rather than a clear meal photo."
             quality_payload = self.quality_service.response_payload(quality)
             quality_payload["issues"] = list(quality_payload.get("issues", [])) + [reason]
             nutrition = self.nutrition_lookup.unavailable(None, source=REJECTED_NUTRITION_SOURCE)
